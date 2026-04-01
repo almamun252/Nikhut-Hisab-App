@@ -1,7 +1,11 @@
 package com.almamun252.nikhuthisab.view
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
@@ -43,9 +51,17 @@ import kotlin.math.sin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: TransactionViewModel = viewModel()) {
+fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
     // ডেটাবেস থেকে রিয়েল-টাইম ডেটা আনা হচ্ছে
     val allTransactions by viewModel.allTransactions.collectAsState()
+
+    // Screen Entry Animation State
+    var isVisible by remember { mutableStateOf(false) }
+
+    // Trigger animation when screen opens
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     // Date Filter State
     var selectedDateFilter by remember { mutableStateOf("চলতি মাস") }
@@ -125,191 +141,283 @@ fun HomeScreen(viewModel: TransactionViewModel = viewModel()) {
             )
         }
     ) { paddingValues ->
-        Column(
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(700)) + slideInVertically(tween(700)) { 150 },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ডেট রেঞ্জ ড্রপডাউন
-            DateRangeFilter(
-                selectedOption = selectedDateFilter,
-                onOptionSelected = { option ->
-                    if (option == "কাস্টম রেঞ্জ") {
-                        showCustomDateDialog = true
-                    } else {
-                        selectedDateFilter = option
-                    }
-                }
-            )
-
-            // --- Custom Date Range Main Dialog ---
-            if (showCustomDateDialog) {
-                val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
-                val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
-                val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
-
-                AlertDialog(
-                    onDismissRequest = { showCustomDateDialog = false },
-                    title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            // Start Date Button
-                            OutlinedButton(
-                                onClick = { showStartDatePicker = true },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (customStartDate != null) MaterialTheme.colorScheme.primary else Color.Gray
-                                )
-                            ) {
-                                Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(startStr, fontSize = 16.sp)
-                            }
-
-                            // End Date Button
-                            OutlinedButton(
-                                onClick = { showEndDatePicker = true },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (customEndDate != null) MaterialTheme.colorScheme.primary else Color.Gray
-                                )
-                            ) {
-                                Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(endStr, fontSize = 16.sp)
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showCustomDateDialog = false
-                            selectedDateFilter = "কাস্টম রেঞ্জ"
-                        }) {
-                            Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showCustomDateDialog = false
-                            customStartDate = null
-                            customEndDate = null
-                        }) {
-                            Text("বাতিল", color = Color.Red)
-                        }
-                    }
-                )
-            }
-
-            // --- Start Date Picker ---
-            if (showStartDatePicker) {
-                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
-                DatePickerDialog(
-                    onDismissRequest = { showStartDatePicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            customStartDate = datePickerState.selectedDateMillis
-                            showStartDatePicker = false
-                        }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") }
-                    }
-                ) {
-                    DatePicker(
-                        state = datePickerState,
-                        title = { Text(" শুরুর তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
-                    )
-                }
-            }
-
-            // --- End Date Picker ---
-            if (showEndDatePicker) {
-                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
-                DatePickerDialog(
-                    onDismissRequest = { showEndDatePicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            customEndDate = datePickerState.selectedDateMillis
-                            showEndDatePicker = false
-                        }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") }
-                    }
-                ) {
-                    DatePicker(
-                        state = datePickerState,
-                        title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ১. কাস্টম পাই চার্ট
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CustomUnevenPieChart(income = totalIncome, expense = totalExpense, balance = balance)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // ডেট রেঞ্জ ড্রপডাউন
+                DateRangeFilter(
+                    selectedOption = selectedDateFilter,
+                    onOptionSelected = { option ->
+                        if (option == "কাস্টম রেঞ্জ") {
+                            showCustomDateDialog = true
+                        } else {
+                            selectedDateFilter = option
+                        }
+                    }
+                )
+
+                // --- Custom Date Range Main Dialog ---
+                if (showCustomDateDialog) {
+                    val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
+                    val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
+                    val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+
+                    AlertDialog(
+                        onDismissRequest = { showCustomDateDialog = false },
+                        title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                // Start Date Button
+                                OutlinedButton(
+                                    onClick = { showStartDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = if (customStartDate != null) MaterialTheme.colorScheme.primary else Color.Gray
+                                    )
+                                ) {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(startStr, fontSize = 16.sp)
+                                }
+
+                                // End Date Button
+                                OutlinedButton(
+                                    onClick = { showEndDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = if (customEndDate != null) MaterialTheme.colorScheme.primary else Color.Gray
+                                    )
+                                ) {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(endStr, fontSize = 16.sp)
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showCustomDateDialog = false
+                                selectedDateFilter = "কাস্টম রেঞ্জ"
+                            }) {
+                                Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                showCustomDateDialog = false
+                                customStartDate = null
+                                customEndDate = null
+                            }) {
+                                Text("বাতিল", color = Color.Red)
+                            }
+                        }
+                    )
+                }
+
+                // --- Start Date Picker ---
+                if (showStartDatePicker) {
+                    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
+                    DatePickerDialog(
+                        onDismissRequest = { showStartDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                customStartDate = datePickerState.selectedDateMillis
+                                showStartDatePicker = false
+                            }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") }
+                        }
+                    ) {
+                        DatePicker(
+                            state = datePickerState,
+                            title = { Text(" শুরুর তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
+                        )
+                    }
+                }
+
+                // --- End Date Picker ---
+                if (showEndDatePicker) {
+                    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
+                    DatePickerDialog(
+                        onDismissRequest = { showEndDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                customEndDate = datePickerState.selectedDateMillis
+                                showEndDatePicker = false
+                            }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") }
+                        }
+                    ) {
+                        DatePicker(
+                            state = datePickerState,
+                            title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ১. কাস্টম পাই চার্ট
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CustomUnevenPieChart(income = totalIncome, expense = totalExpense, balance = balance)
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // ২. ফিন্যান্সিয়াল সামারি কার্ড
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SummaryMiniCard(
+                        title = "মোট আয়",
+                        amount = totalIncome,
+                        color = Color(0xFFFFCA28), // Yellow
+                        modifier = Modifier.weight(1f)
+                    )
+                    SummaryMiniCard(
+                        title = "মোট ব্যয়",
+                        amount = totalExpense,
+                        color = Color(0xFFFF7043), // Orange/Red
+                        modifier = Modifier.weight(1f)
+                    )
+                    SummaryMiniCard(
+                        title = "ব্যালেন্স",
+                        amount = balance,
+                        color = Color(0xFF26C6DA), // Teal
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ৩. কুইক শর্টকাট সেকশন
+                QuickShortcutsSection(navController = navController)
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // ৪. প্রফেশনাল বার চার্ট
+                TopExpensesSection(filteredTransactions)
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // ৫. সাম্প্রতিক লেনদেন
+                RecentTransactionsSection(filteredTransactions)
+
+                Spacer(modifier = Modifier.height(80.dp))
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // ২. ফিন্যান্সিয়াল সামারি কার্ড
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                SummaryMiniCard(
-                    title = "মোট আয়",
-                    amount = totalIncome,
-                    color = Color(0xFFFFCA28), // Yellow
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryMiniCard(
-                    title = "মোট ব্যয়",
-                    amount = totalExpense,
-                    color = Color(0xFFFF7043), // Orange/Red
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryMiniCard(
-                    title = "ব্যালেন্স",
-                    amount = balance,
-                    color = Color(0xFF26C6DA), // Teal
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // ৩. প্রফেশনাল বার চার্ট (ফিল্টার করা ডেটা পাস করা হচ্ছে)
-            TopExpensesSection(filteredTransactions)
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // ৪. সাম্প্রতিক লেনদেন (ফিল্টার করা ডেটা পাস করা হচ্ছে)
-            RecentTransactionsSection(filteredTransactions)
-
-            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-// ডেটা হোল্ড করার জন্য একটি ছোট ডাটা ক্লাস
+// --- শর্টকাট সেকশন ---
+@Composable
+fun QuickShortcutsSection(navController: NavController) {
+    val navigateToTab = { route: String ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ShortcutCard(
+            title = "লেনদেন",
+            icon = Icons.Rounded.ReceiptLong,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+            onClick = { navigateToTab("transactions") }
+        )
+        ShortcutCard(
+            title = "আয় যোগ",
+            icon = Icons.Rounded.Add,
+            color = Color(0xFF4CAF50), // Green
+            modifier = Modifier.weight(1f),
+            onClick = { navController.navigate("add_income") }
+        )
+        ShortcutCard(
+            title = "ব্যয় যোগ",
+            icon = Icons.Rounded.Add,
+            color = Color(0xFFF44336), // Red
+            modifier = Modifier.weight(1f),
+            onClick = { navController.navigate("add_expense") }
+        )
+    }
+}
+
+@Composable
+fun ShortcutCard(title: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier
+            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = color.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = color,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            )
+        }
+    }
+}
+
 data class SliceData(val name: String, val value: Float, val percentage: Float, val color: Color)
 
-// --- সম্পূর্ণ কাস্টম ক্যানভাস পাই চার্ট ---
 @Composable
 fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
     val totalVolume = income + expense + if (balance > 0) balance else 0f
@@ -329,9 +437,9 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
     val balPct = if (balance > 0) (balance / totalVolume) * 100 else 0f
 
     val slices = listOf(
-        SliceData("আয়", income, incPct, Color(0xFFFFCA28)), // হলুদ
-        SliceData("খরচ", expense, expPct, Color(0xFFFF7043)), // কমলা/লাল
-        SliceData("আছে", if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA)) // ফিরোজা
+        SliceData("আয়", income, incPct, Color(0xFFFFCA28)),
+        SliceData("খরচ", expense, expPct, Color(0xFFFF7043)),
+        SliceData("আছে", if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA))
     ).filter { it.value > 0f }
 
     val sortedSlices = slices.sortedByDescending { it.value }
@@ -386,7 +494,15 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
                 val midAngle = (startAngle + sweepAngle / 2) * (Math.PI / 180f)
 
                 val lineStartRadius = sliceRadius * 0.85f
-                val lineEndRadius = sliceRadius + 25f
+
+                // ডাইনামিক লাইনের দৈর্ঘ্য: পার্সেন্টেজ কম হলে লাইন লম্বা হবে
+                val extension = when {
+                    slice.percentage < 5f -> 65f   // খুব কম হলে অনেক লম্বা
+                    slice.percentage < 15f -> 45f  // একটু কম হলে মাঝারি লম্বা
+                    else -> 25f                    // স্বাভাবিক
+                }
+
+                val lineEndRadius = sliceRadius + extension
 
                 val startX = canvasCenter.x + (cos(midAngle) * lineStartRadius).toFloat()
                 val startY = canvasCenter.y + (sin(midAngle) * lineStartRadius).toFloat()
@@ -395,7 +511,8 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
                 val endY = canvasCenter.y + (sin(midAngle) * lineEndRadius).toFloat()
 
                 val isRightSide = cos(midAngle) >= 0
-                val elbowX = endX + if (isRightSide) 15f else -15f
+                val elbowLength = 20f // অনুভূমিক (ডান/বাম) লাইনের দৈর্ঘ্য
+                val elbowX = endX + if (isRightSide) elbowLength else -elbowLength
 
                 drawLine(color = slice.color, start = Offset(startX, startY), end = Offset(endX, endY), strokeWidth = 4f)
                 drawLine(color = slice.color, start = Offset(endX, endY), end = Offset(elbowX, endY), strokeWidth = 4f)
@@ -492,7 +609,6 @@ fun DateRangeFilter(selectedOption: String, onOptionSelected: (String) -> Unit) 
     }
 }
 
-// --- কাস্টম হেডিং ডিজাইন ---
 @Composable
 fun SectionTitle(title: String) {
     Box(
@@ -537,11 +653,11 @@ fun TopExpensesSection(transactions: List<Transaction>) {
             .take(5)
 
         val barColors = listOf(
-            Color(0xFFF44336), // Red (১ম)
-            Color(0xFFFF9800), // Orange (২য়)
-            Color(0xFF2196F3), // Blue (৩য়)
-            Color(0xFF9C27B0), // Purple ( ৪র্থ)
-            Color(0xFF4CAF50)  // Green (৫ম)
+            Color(0xFFF44336),
+            Color(0xFFFF9800),
+            Color(0xFF2196F3),
+            Color(0xFF9C27B0),
+            Color(0xFF4CAF50)
         )
 
         val placeholderColor = Color(0xFFE0E0E0)
@@ -742,9 +858,14 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
                 )
             }
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.animateContentSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 filteredTransactions.forEach { transaction ->
-                    RecentTransactionCard(transaction)
+                    key(transaction.id) {
+                        RecentTransactionCard(transaction)
+                    }
                 }
             }
         }

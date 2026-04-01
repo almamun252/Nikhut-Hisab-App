@@ -1,6 +1,10 @@
 package com.almamun252.nikhuthisab.view
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -50,6 +54,14 @@ fun AddTransactionScreen(
 ) {
     val context = LocalContext.current
     val transactions by viewModel.allTransactions.collectAsState()
+
+    // Screen Entry Animation State
+    var isVisible by remember { mutableStateOf(false) }
+
+    // Trigger animation when screen opens
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     val existingTransaction = transactions.find { it.id == transactionId }
 
@@ -143,101 +155,172 @@ fun AddTransactionScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 150 },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
 
-            // --- Amount Input Field (Premium Large Look) ---
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it },
-                label = { Text("টাকার পরিমাণ *", fontWeight = FontWeight.Medium) },
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(lightThemeColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("৳", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
-                    }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                textStyle = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = themeColor),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = themeColor,
-                    unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                    focusedLabelColor = themeColor
-                ),
-                singleLine = true
-            )
+                // --- Amount Input Field (Premium Large Look) ---
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("টাকার পরিমাণ *", fontWeight = FontWeight.Medium) },
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 12.dp)
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(lightThemeColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("৳", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    textStyle = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = themeColor),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = themeColor,
+                        unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                        focusedLabelColor = themeColor
+                    ),
+                    singleLine = true
+                )
 
-            // --- Form Fields ---
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // --- Form Fields ---
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                // Title Field
-                Column {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("খরচের নাম (ঐচ্ছিক)") },
-                        leadingIcon = { Icon(Icons.Rounded.EditNote, contentDescription = null, tint = themeColor) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = themeColor,
-                            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                            focusedLabelColor = themeColor
-                        ),
-                        singleLine = true
-                    )
+                    // Title Field
+                    Column {
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("খরচের নাম (ঐচ্ছিক)") },
+                            leadingIcon = { Icon(Icons.Rounded.EditNote, contentDescription = null, tint = themeColor) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                focusedLabelColor = themeColor
+                            ),
+                            singleLine = true
+                        )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    // Suggestion Chips (Modern Design)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(suggestionChips) { chip ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (title == chip) themeColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .clickable { title = chip }
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = chip,
-                                    color = if (title == chip) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 13.sp,
-                                    fontWeight = if (title == chip) FontWeight.Bold else FontWeight.Medium
-                                )
+                        // Suggestion Chips (Modern Design)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(suggestionChips) { chip ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (title == chip) themeColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clickable { title = chip }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = chip,
+                                        color = if (title == chip) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (title == chip) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Category Field
-                ExposedDropdownMenuBox(
-                    expanded = categoryExpanded,
-                    onExpandedChange = { categoryExpanded = !categoryExpanded },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    // Category Field
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = !categoryExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = category,
+                            onValueChange = { category = it },
+                            label = { Text("ক্যাটাগরি") },
+                            leadingIcon = { Icon(Icons.Rounded.Category, contentDescription = null, tint = themeColor) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                focusedLabelColor = themeColor
+                            )
+                        )
+
+                        if (allCategories.isNotEmpty()) {
+                            ExposedDropdownMenu(
+                                expanded = categoryExpanded,
+                                onDismissRequest = { categoryExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                allCategories.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(text = cat, fontWeight = FontWeight.Medium) },
+                                        onClick = {
+                                            category = cat
+                                            categoryExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Date & Time Field
+                    val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
+                    val dateTimeString = sdf.format(Date(selectedDateMillis))
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = dateTimeString,
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("তারিখ ও সময়") },
+                            leadingIcon = { Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = themeColor) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                focusedLabelColor = themeColor
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        // Clickable overlay
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { showDatePicker = true }
+                        )
+                    }
+
+                    // Note Field
                     OutlinedTextField(
-                        value = category,
-                        onValueChange = { category = it },
-                        label = { Text("ক্যাটাগরি") },
-                        leadingIcon = { Icon(Icons.Rounded.Category, contentDescription = null, tint = themeColor) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text("বিস্তারিত নোট (ঐচ্ছিক)") },
+                        leadingIcon = { Icon(Icons.Rounded.Subject, contentDescription = null, tint = themeColor) },
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        maxLines = 4,
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = themeColor,
@@ -245,133 +328,69 @@ fun AddTransactionScreen(
                             focusedLabelColor = themeColor
                         )
                     )
+                }
 
-                    if (allCategories.isNotEmpty()) {
-                        ExposedDropdownMenu(
-                            expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            allCategories.forEach { cat ->
-                                DropdownMenuItem(
-                                    text = { Text(text = cat, fontWeight = FontWeight.Medium) },
-                                    onClick = {
-                                        category = cat
-                                        categoryExpanded = false
-                                    }
-                                )
-                            }
+                Spacer(modifier = Modifier.weight(1f)) // পুশ বাটন টু বটম (যদি জায়গা থাকে)
+
+                // --- Save / Update Button ---
+                Button(
+                    onClick = {
+                        val amountValue = amount.toDoubleOrNull()
+
+                        if (amountValue == null || amountValue <= 0) {
+                            Toast.makeText(context, "সঠিক টাকার পরিমাণ দিন!", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
-                    }
-                }
 
-                // Date & Time Field
-                val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
-                val dateTimeString = sdf.format(Date(selectedDateMillis))
+                        val finalTitle = title.trim()
+                        if (finalTitle.isEmpty() && transactionId == null) {
+                            Toast.makeText(context, "সফলভাবে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
+                        } else if (transactionId == null) {
+                            Toast.makeText(context, "হিসাব সফলভাবে সেভ হয়েছে!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "হিসাব সফলভাবে আপডেট হয়েছে!", Toast.LENGTH_SHORT).show()
+                        }
 
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = dateTimeString,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("তারিখ ও সময়") },
-                        leadingIcon = { Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = themeColor) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = themeColor,
-                            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                            focusedLabelColor = themeColor
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    // Clickable overlay
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { showDatePicker = true }
-                    )
-                }
+                        val transaction = Transaction(
+                            id = existingTransaction?.id ?: 0,
+                            title = finalTitle.ifEmpty { "-" },
+                            amount = amountValue,
+                            type = type,
+                            category = category.ifEmpty { "অন্যান্য" },
+                            date = selectedDateMillis,
+                            note = note.trim().ifEmpty { null }
+                        )
 
-                // Note Field
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("বিস্তারিত নোট (ঐচ্ছিক)") },
-                    leadingIcon = { Icon(Icons.Rounded.Subject, contentDescription = null, tint = themeColor) },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    maxLines = 4,
+                        if (transactionId != null && existingTransaction != null) {
+                            viewModel.deleteTransaction(existingTransaction)
+                            viewModel.insertTransaction(transaction)
+                        } else {
+                            viewModel.insertTransaction(transaction)
+                        }
+
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = themeColor,
-                        unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                        focusedLabelColor = themeColor
+                    colors = ButtonDefaults.buttonColors(containerColor = themeColor),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+                ) {
+                    Text(
+                        text = if (transactionId != null) "আপডেট করুন" else "সেভ করুন",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            Spacer(modifier = Modifier.weight(1f)) // পুশ বাটন টু বটম (যদি জায়গা থাকে)
-
-            // --- Save / Update Button ---
-            Button(
-                onClick = {
-                    val amountValue = amount.toDoubleOrNull()
-
-                    if (amountValue == null || amountValue <= 0) {
-                        Toast.makeText(context, "সঠিক টাকার পরিমাণ দিন!", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-                    val finalTitle = title.trim()
-                    if (finalTitle.isEmpty() && transactionId == null) {
-                        Toast.makeText(context, "সফলভাবে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
-                    } else if (transactionId == null) {
-                        Toast.makeText(context, "হিসাব সফলভাবে সেভ হয়েছে!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "হিসাব সফলভাবে আপডেট হয়েছে!", Toast.LENGTH_SHORT).show()
-                    }
-
-                    val transaction = Transaction(
-                        id = existingTransaction?.id ?: 0,
-                        title = finalTitle.ifEmpty { "-" },
-                        amount = amountValue,
-                        type = type,
-                        category = category.ifEmpty { "অন্যান্য" },
-                        date = selectedDateMillis,
-                        note = note.trim().ifEmpty { null }
-                    )
-
-                    if (transactionId != null && existingTransaction != null) {
-                        viewModel.deleteTransaction(existingTransaction)
-                        viewModel.insertTransaction(transaction)
-                    } else {
-                        viewModel.insertTransaction(transaction)
-                    }
-
-                    navController.popBackStack()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = themeColor),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
-            ) {
-                Text(
-                    text = if (transactionId != null) "আপডেট করুন" else "সেভ করুন",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
-    // --- Date Picker Dialog ---
+// --- Date Picker Dialog ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
 
