@@ -1,5 +1,6 @@
 package com.almamun252.nikhuthisab.view
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -7,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -33,10 +35,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -85,8 +92,8 @@ fun TransactionsScreen(
     var showExportSheet by remember { mutableStateOf(false) }
     val exportSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var exportType by remember { mutableStateOf("All") } // All, Income, Expense
-    var exportPeriod by remember { mutableStateOf("This Month") } // This Month, Specific Month, Custom, All Time
+    var exportType by remember { mutableStateOf("All") } // All, Income, Expense, Lending, Borrowing
+    var exportPeriod by remember { mutableStateOf("This Month") }
     var exportSpecificMonth by remember { mutableStateOf("") }
     var exportCategory by remember { mutableStateOf("All") }
 
@@ -104,6 +111,24 @@ fun TransactionsScreen(
     // Bottom Sheet State for Details
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     val detailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Dropdown States
+    var typeDropdownExpanded by remember { mutableStateOf(false) }
+    var monthDropdownExpanded by remember { mutableStateOf(false) }
+
+    val typeOptions = mapOf(
+        "All" to "সব ধরন",
+        "Income" to "আয়",
+        "Expense" to "ব্যয়",
+        "Lending" to "পাওনা",
+        "Borrowing" to "দেনা"
+    )
+    val monthOptions = mapOf(
+        "All Time" to "সব সময়",
+        "This Month" to "এই মাস",
+        "Last Month" to "গত মাস",
+        "Custom" to "কাস্টম 📅"
+    )
 
     // Main List Filter Logic
     val filteredTransactions = allTransactions.filter { tx ->
@@ -149,22 +174,38 @@ fun TransactionsScreen(
 
     val incomeColor = Color(0xFF4CAF50)
     val expenseColor = Color(0xFFF44336)
+    val lendingColor = Color(0xFF3B82F6) // Blue
+    val borrowingColor = Color(0xFFF59E0B) // Amber/Yellow
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    // বামপাশে স্ক্রিনের টাইটেল
-                    Text(
-                        text = "সব লেনদেন",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+    Box(modifier = Modifier.fillMaxSize()) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 150 },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Search Bar and Download Button Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("লেনদেন খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
+                        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
                     )
-                },
-                actions = {
-                    // উপরের ডানপাশে আকর্ষণীয় ও নড়াচড়া করা ডাউনলোড বাটন
-                    AnimatedVisibility(
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = isVisible,
                         enter = fadeIn(tween(600, delayMillis = 300))
                     ) {
@@ -172,50 +213,111 @@ fun TransactionsScreen(
                             onClick = { showExportSheet = true }
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                )
-            )
-        }
-    ) { paddingValues ->
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 150 },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("লেনদেন খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true
-                )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                LazyRow(
+                // Dropdown Filters Row (Category & Time)
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { FilterChipWidget("সব", selectedType == "All") { selectedType = "All" } }
-                    item { FilterChipWidget("আয়", selectedType == "Income", incomeColor) { selectedType = "Income" } }
-                    item { FilterChipWidget("ব্যয়", selectedType == "Expense", expenseColor) { selectedType = "Expense" } }
+                    // Type Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = typeDropdownExpanded,
+                        onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            readOnly = true,
+                            value = typeOptions[selectedType] ?: "সব ধরন",
+                            onValueChange = { },
+                            leadingIcon = {
+                                Icon(Icons.Rounded.Category, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                            },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = Color.LightGray,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = typeDropdownExpanded,
+                            onDismissRequest = { typeDropdownExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            typeOptions.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (selectedType == key) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedType == key) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedType = key
+                                        typeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
 
-                    item { VerticalDivider(modifier = Modifier.height(32.dp).padding(horizontal = 4.dp)) }
-
-                    item { FilterChipWidget("সব সময়", selectedMonth == "All Time") { selectedMonth = "All Time" } }
-                    item { FilterChipWidget("এই মাস", selectedMonth == "This Month") { selectedMonth = "This Month" } }
-                    item { FilterChipWidget("গত মাস", selectedMonth == "Last Month") { selectedMonth = "Last Month" } }
-                    item { FilterChipWidget("কাস্টম 📅", selectedMonth == "Custom") { showCustomDateDialog = true } }
+                    // Month/Time Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = monthDropdownExpanded,
+                        onExpandedChange = { monthDropdownExpanded = !monthDropdownExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            readOnly = true,
+                            value = monthOptions[selectedMonth] ?: "সব সময়",
+                            onValueChange = { },
+                            leadingIcon = {
+                                Icon(Icons.Rounded.Schedule, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                            },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthDropdownExpanded) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = Color.LightGray,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = monthDropdownExpanded,
+                            onDismissRequest = { monthDropdownExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            monthOptions.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (selectedMonth == key) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedMonth == key) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedMonth = key
+                                        monthDropdownExpanded = false
+                                        if (key == "Custom") {
+                                            showCustomDateDialog = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (showCustomDateDialog) {
@@ -287,14 +389,12 @@ fun TransactionsScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp) // Bottom padding adjusted as FAB is removed
+                        verticalArrangement = Arrangement.spacedBy(8.dp), // কার্ডগুলোর মাঝের দূরত্ব কমানো হয়েছে (12dp থেকে 8dp)
+                        contentPadding = PaddingValues(bottom = 12.dp)
                     ) {
                         items(currentItems, key = { it.id }) { tx ->
                             AllTransactionItemCard(
                                 transaction = tx,
-                                incomeColor = incomeColor,
-                                expenseColor = expenseColor,
                                 modifier = Modifier.animateItemPlacement(tween(300)),
                                 onClick = { selectedTransaction = tx }
                             )
@@ -302,6 +402,7 @@ fun TransactionsScreen(
                     }
                 }
 
+                // Pagination Row
                 if (totalPages > 1) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
@@ -334,13 +435,17 @@ fun TransactionsScreen(
             ) {
                 AllTransactionDetailsSheet(
                     transaction = selectedTransaction!!,
-                    incomeColor = incomeColor,
-                    expenseColor = expenseColor,
                     onEdit = {
                         val id = selectedTransaction!!.id
-                        val typeRoute = if (selectedTransaction!!.type == "Income") "add_income" else "add_expense"
+                        val route = when (selectedTransaction!!.type) {
+                            "Income" -> "add_income?transactionId=$id"
+                            "Expense" -> "add_expense?transactionId=$id"
+                            "Lending" -> "add_debt_credit?type=Lending&transactionId=$id"
+                            "Borrowing" -> "add_debt_credit?type=Borrowing&transactionId=$id"
+                            else -> "add_income?transactionId=$id"
+                        }
                         selectedTransaction = null
-                        navController.navigate("$typeRoute?transactionId=$id")
+                        navController.navigate(route)
                     },
                     onDelete = {
                         viewModel.deleteTransaction(selectedTransaction!!)
@@ -390,10 +495,12 @@ fun TransactionsScreen(
                         // 1. Transaction Type
                         Text("১. লেনদেনের ধরন", modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PdfOptionButton(text = "সব", isSelected = exportType == "All", color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f)) { exportType = "All" }
-                            PdfOptionButton(text = "শুধু আয়", isSelected = exportType == "Income", color = incomeColor, modifier = Modifier.weight(1f)) { exportType = "Income" }
-                            PdfOptionButton(text = "শুধু ব্যয়", isSelected = exportType == "Expense", color = expenseColor, modifier = Modifier.weight(1f)) { exportType = "Expense" }
+                        LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item { PdfOptionButton(text = "সব", isSelected = exportType == "All", color = MaterialTheme.colorScheme.primary) { exportType = "All" } }
+                            item { PdfOptionButton(text = "আয়", isSelected = exportType == "Income", color = incomeColor) { exportType = "Income" } }
+                            item { PdfOptionButton(text = "ব্যয়", isSelected = exportType == "Expense", color = expenseColor) { exportType = "Expense" } }
+                            item { PdfOptionButton(text = "পাওনা", isSelected = exportType == "Lending", color = lendingColor) { exportType = "Lending" } }
+                            item { PdfOptionButton(text = "দেনা", isSelected = exportType == "Borrowing", color = borrowingColor) { exportType = "Borrowing" } }
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -498,7 +605,9 @@ fun TransactionsScreen(
                                     val title = when (exportType) {
                                         "Income" -> "আয় রিপোর্ট"
                                         "Expense" -> "ব্যয় রিপোর্ট"
-                                        else -> "আয় ও ব্যয় রিপোর্ট"
+                                        "Lending" -> "পাওনা রিপোর্ট"
+                                        "Borrowing" -> "দেনা রিপোর্ট"
+                                        else -> "সকল লেনদেন রিপোর্ট"
                                     } + if (exportCategory != "All") " ($exportCategory)" else ""
 
                                     val dateStr = when (exportPeriod) {
@@ -560,7 +669,7 @@ fun TransactionsScreen(
 }
 
 // ----------------------------------------------------------------------
-// নড়াচড়া করা (Wiggling) আকর্ষণীয় ডাউনলোড বাটন কম্পোজেবল
+// নড়াচড়া করা (Wiggling) আকর্ষণীয় ডাউনলোড বাটন কম্পোজেবল
 // ----------------------------------------------------------------------
 @Composable
 fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -574,8 +683,8 @@ fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Uni
             animation = keyframes {
                 durationMillis = 3500
                 0f at 0
-                0f at 2800        // ৮০% সময় স্থির থাকবে
-                -15f at 2950      // তারপর নড়বে
+                0f at 2800        // ৮০% সময় স্থির থাকবে
+                -15f at 2950      // তারপর নড়বে
                 15f at 3100
                 -15f at 3250
                 0f at 3500
@@ -585,7 +694,7 @@ fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Uni
         label = "rotation_anim"
     )
 
-    // স্কেল অ্যানিমেশন (নড়ার সময় একটু বড় হবে)
+    // স্কেল অ্যানিমেশন (নড়ার সময় একটু বড় হবে)
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
@@ -607,14 +716,13 @@ fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Uni
     IconButton(
         onClick = onClick,
         modifier = modifier
-            .padding(end = 8.dp) // ডানপাশ থেকে একটু দূরত্ব
             .size(44.dp)
             .rotate(rotation)
             .scale(scale)
-            .shadow(6.dp, CircleShape) // আকর্ষণীয় শ্যাডো
+            .shadow(6.dp, CircleShape) // আকর্ষণীয় শ্যাডো
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF3B82F6), Color(0xFF6366F1)) // ব্লু-ইন্ডিগো গ্রেডিয়েন্ট
+                    colors = listOf(Color(0xFF3B82F6), Color(0xFF6366F1)) // ব্লু-ইন্ডিগো গ্রেডিয়েন্ট
                 ),
                 shape = CircleShape
             )
@@ -645,65 +753,65 @@ fun PdfOptionButton(text: String, isSelected: Boolean, color: Color, modifier: M
     }
 }
 
-// Helper Composable for Filter Chips
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FilterChipWidget(
-    label: String,
-    selected: Boolean,
-    selectedColor: Color = MaterialTheme.colorScheme.primary,
-    onClick: () -> Unit
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = selectedColor.copy(alpha = 0.2f),
-            selectedLabelColor = selectedColor
-        ),
-        shape = RoundedCornerShape(16.dp),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = if (selected) selectedColor else Color.LightGray
-        )
-    )
-}
-
 // Transaction List Item
 @Composable
 private fun AllTransactionItemCard(
     transaction: Transaction,
-    incomeColor: Color,
-    expenseColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val isIncome = transaction.type == "Income"
-    val themeColor = if (isIncome) incomeColor else expenseColor
-    val lightThemeColor = if (isIncome) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-    val amountPrefix = if (isIncome) "+" else "-"
+    // দেনা-পাওনার কালার লজিক
+    val (themeColor, lightThemeColor, amountPrefix) = when (transaction.type) {
+        "Income" -> Triple(Color(0xFF4CAF50), Color(0xFFE8F5E9), "+")
+        "Expense" -> Triple(Color(0xFFF44336), Color(0xFFFFEBEE), "-")
+        "Borrowing" -> Triple(Color(0xFFF59E0B), Color(0xFFFEF3C7), "+") // হলুদ (Amber) এবং (+) সাইন
+        "Lending" -> Triple(Color(0xFF3B82F6), Color(0xFFEFF6FF), "-") // নীল (Blue) এবং (-) সাইন
+        else -> Triple(Color.Gray, Color(0xFFF1F5F9), "")
+    }
 
     val dateString = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD")).format(Date(transaction.date))
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+    // Card এর বদলে Box ব্যবহার করা হয়েছে গ্লো ইফেক্ট দেওয়ার জন্য
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            // ট্রানজ্যাকশনের টাইপ অনুযায়ী ডায়নামিক গ্লোয়িং শ্যাডো
+            .drawBehind {
+                val shadowColor = themeColor.copy(alpha = 0.2f).toArgb() // গ্লো এর অপাসিটি কমানো হয়েছে যাতে হালকা লাগে
+
+                val paint = Paint().asFrameworkPaint().apply {
+                    this.color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        12f, // ব্লার রেডিয়াস
+                        0f,
+                        6f, // নিচের দিকে হালকা শ্যাডো
+                        shadowColor
+                    )
+                }
+
+                drawContext.canvas.nativeCanvas.drawRoundRect(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    12.dp.toPx(), // রাউন্ডেড কর্নার 16 থেকে 12 করা হয়েছে
+                    12.dp.toPx(),
+                    paint
+                )
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp), // আগের 16dp প্যাডিং কমিয়ে কার্ড স্লিম করা হয়েছে
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(40.dp) // আইকনের সাইজ 52dp থেকে কমিয়ে 40dp করা হয়েছে
                     .clip(CircleShape)
                     .background(lightThemeColor),
                 contentAlignment = Alignment.Center
@@ -711,34 +819,32 @@ private fun AllTransactionItemCard(
                 Text(
                     text = transaction.category.take(1).uppercase(),
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
+                    fontSize = 16.sp, // ফন্ট সাইজ 20sp থেকে কমানো হয়েছে
                     color = themeColor
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // Details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = transaction.title,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp, // 16sp থেকে কমানো হয়েছে
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp)) // মাঝের গ্যাপ কমানো হয়েছে
                 Text(
                     text = "${transaction.category} • $dateString",
-                    fontSize = 13.sp,
+                    fontSize = 11.sp, // 13sp থেকে কমানো হয়েছে
                     color = Color.Gray,
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            // Amount
             Text(
                 text = "$amountPrefix ৳${transaction.amount.toInt()}",
-                fontSize = 18.sp,
+                fontSize = 15.sp, // 18sp থেকে কমিয়ে 15sp করা হয়েছে
                 fontWeight = FontWeight.ExtraBold,
                 color = themeColor
             )
@@ -750,15 +856,17 @@ private fun AllTransactionItemCard(
 @Composable
 private fun AllTransactionDetailsSheet(
     transaction: Transaction,
-    incomeColor: Color,
-    expenseColor: Color,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val isIncome = transaction.type == "Income"
-    val themeColor = if (isIncome) incomeColor else expenseColor
-    val lightThemeColor = if (isIncome) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-    val amountPrefix = if (isIncome) "+" else "-"
+    // দেনা-পাওনার কালার লজিক
+    val (themeColor, lightThemeColor, amountPrefix) = when (transaction.type) {
+        "Income" -> Triple(Color(0xFF4CAF50), Color(0xFFE8F5E9), "+")
+        "Expense" -> Triple(Color(0xFFF44336), Color(0xFFFFEBEE), "-")
+        "Borrowing" -> Triple(Color(0xFFF59E0B), Color(0xFFFEF3C7), "+") // হলুদ
+        "Lending" -> Triple(Color(0xFF3B82F6), Color(0xFFEFF6FF), "-") // নীল
+        else -> Triple(Color.Gray, Color(0xFFF1F5F9), "")
+    }
 
     val dateString = SimpleDateFormat("dd MMMM, yyyy", Locale("bn", "BD")).format(Date(transaction.date))
     val timeString = SimpleDateFormat("hh:mm a", Locale("bn", "BD")).format(Date(transaction.date))

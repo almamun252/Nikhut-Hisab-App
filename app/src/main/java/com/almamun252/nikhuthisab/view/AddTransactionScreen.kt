@@ -126,41 +126,12 @@ fun AddTransactionScreen(
         .distinct()
         .filter { it != "অন্যান্য" } + "অন্যান্য"
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(screenTitle, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (transactionId != null) {
-                        IconButton(onClick = {
-                            existingTransaction?.let {
-                                viewModel.deleteTransaction(it)
-                                Toast.makeText(context, "হিসাবটি মুছে ফেলা হয়েছে!", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
-                            }
-                        }) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = Color.Red)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                )
-            )
-        }
-    ) { paddingValues ->
+    // Scaffold রিমুভ করে Box দিয়ে শুরু করা হলো
+    Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 150 },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(
                 modifier = Modifier
@@ -169,6 +140,49 @@ fun AddTransactionScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // --- Custom Custom Top Bar (Back button, Title, Delete Button) ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Back Button
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { navController.popBackStack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+
+                    // Title
+                    Text(text = screenTitle, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+
+                    // Delete Button or Empty Space
+                    if (transactionId != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFEBEE))
+                                .clickable {
+                                    existingTransaction?.let {
+                                        viewModel.deleteTransaction(it)
+                                        Toast.makeText(context, "হিসাবটি মুছে ফেলা হয়েছে!", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.size(40.dp)) // ব্যালেন্স রাখার জন্য ফাঁকা জায়গা
+                    }
+                }
 
                 // --- Amount Input Field (Premium Large Look) ---
                 OutlinedTextField(
@@ -330,8 +344,6 @@ fun AddTransactionScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f)) // পুশ বাটন টু বটম (যদি জায়গা থাকে)
-
                 // --- Save / Update Button ---
                 Button(
                     onClick = {
@@ -385,12 +397,13 @@ fun AddTransactionScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // ফ্লোটিং নেভিগেশন বারের জন্য নিচে কিছুটা জায়গা রাখা
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
 
-// --- Date Picker Dialog ---
+    // --- Date Picker Dialog ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
 

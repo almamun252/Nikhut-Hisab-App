@@ -22,14 +22,7 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("প্রোফাইল", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,7 +78,7 @@ fun ProfileScreen(navController: NavController) {
 
                 // বিস্তারিত মেসেজ
                 Text(
-                    text = "প্রোফাইল সেকশন এবং গুগল ড্রাইভ ব্যাকআপ নিয়ে কাজ চলছে। কাজ শেষ হলেই নতুন আপডেটে এটি যুক্ত করে দেওয়া হবে!",
+                    text = "প্রোফাইল সেকশন এবং গুগল ড্রাইভ ব্যাকআপ নিয়ে কাজ চলছে। কাজ শেষ হলেই নতুন আপডেটে এটি যুক্ত করে দেওয়া হবে!",
                     fontSize = 15.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
