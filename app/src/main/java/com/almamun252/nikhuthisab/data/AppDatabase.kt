@@ -21,7 +21,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nikhut_hisab_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // <-- এই লাইনটি যোগ করা হয়েছে
+                    .build()
+
                 INSTANCE = instance
                 instance
             }

@@ -1,13 +1,14 @@
 package com.almamun252.nikhuthisab.view
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,32 +16,43 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CalendarToday
-import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -52,29 +64,23 @@ import kotlin.math.sin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
-    // ডেটাবেস থেকে রিয়েল-টাইম ডেটা আনা হচ্ছে
+    val context = LocalContext.current
     val allTransactions by viewModel.allTransactions.collectAsState()
 
-    // Screen Entry Animation State
     var isVisible by remember { mutableStateOf(false) }
 
-    // Trigger animation when screen opens
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
-    // Date Filter State
     var selectedDateFilter by remember { mutableStateOf("চলতি মাস") }
-
-    // Custom Date Range State
     var showCustomDateDialog by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var customStartDate by remember { mutableStateOf<Long?>(null) }
     var customEndDate by remember { mutableStateOf<Long?>(null) }
 
-    // আসল ফিল্টারিং লজিক (যা ডেটা আপডেট করবে)
-    val filteredTransactions = allTransactions.filter { tx ->
+    val filteredTransactions = allTransactions.filter { tx: Transaction ->
         val cal = Calendar.getInstance().apply { timeInMillis = tx.date }
         val txMonth = cal.get(Calendar.MONTH)
         val txYear = cal.get(Calendar.YEAR)
@@ -104,456 +110,486 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
         }
     }
 
-    // ফিল্টার করা ডেটার উপর ভিত্তি করে আয়, ব্যয় এবং ব্যালেন্স হিসাব করা
-    val totalIncome = filteredTransactions.filter { it.type == "Income" }.sumOf { it.amount }.toFloat()
-    val totalExpense = filteredTransactions.filter { it.type == "Expense" }.sumOf { it.amount }.toFloat()
-    val balance = totalIncome - totalExpense
+    // ফিল্টার করা নির্দিষ্ট সময়ের আয়-ব্যয়
+    val totalIncome = filteredTransactions.filter { it.type == "Income" }.map { it.amount }.sum().toFloat()
+    val totalExpense = filteredTransactions.filter { it.type == "Expense" }.map { it.amount }.sum().toFloat()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("ড্যাশবোর্ড", fontWeight = FontWeight.Bold, fontSize = 22.sp) },
-                actions = {
-                    // ডানপাশে সুন্দর আইকন এবং অ্যাপের নাম
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccountBalanceWallet,
-                            contentDescription = "App Icon",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "নিখুঁত হিসাব",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 18.sp
-                        )
+    // গ্লোবাল ক্যাশ ফ্লো হিসাব (সব সময়ের জন্য)
+    val globalIncome = allTransactions.filter { it.type == "Income" }.map { it.amount }.sum().toFloat()
+    val globalExpense = allTransactions.filter { it.type == "Expense" }.map { it.amount }.sum().toFloat()
+
+    val globalBorrowing = allTransactions.filter { it.type == "Borrowing" }.map { it.amount }.sum().toFloat()
+    val globalLending = allTransactions.filter { it.type == "Lending" }.map { it.amount }.sum().toFloat()
+
+    val globalBorrowingSettled = allTransactions.filter { it.type == "Borrowing" }.map { it.settledAmount }.sum().toFloat()
+    val globalLendingSettled = allTransactions.filter { it.type == "Lending" }.map { it.settledAmount }.sum().toFloat()
+
+    // বর্তমান ক্যাশ ব্যালেন্স
+    val balance = (globalIncome + globalBorrowing + globalLendingSettled) - (globalExpense + globalLending + globalBorrowingSettled)
+
+    // রিয়েল-টাইম পাওনা এবং দেনা
+    val realReceivable = globalLending - globalLendingSettled
+    val realPayable = globalBorrowing - globalBorrowingSettled
+
+    // রিয়েল-টাইম ডাইনামিক এলার্ট তৈরি
+    val realAlerts = remember(allTransactions) {
+        val alerts = mutableListOf<AlertItem>()
+        val currentMillis = System.currentTimeMillis()
+        val todayCal = Calendar.getInstance()
+
+        allTransactions.forEach { tx: Transaction ->
+            if (tx.type == "Lending" || tx.type == "Borrowing") {
+                val amountDue = (tx.amount - tx.settledAmount).toFloat()
+                if (amountDue > 0) {
+                    val dueDate = tx.dueDate
+                    if (dueDate != null) {
+                        val dueCal = Calendar.getInstance().apply { timeInMillis = dueDate }
+                        val isToday = todayCal.get(Calendar.YEAR) == dueCal.get(Calendar.YEAR) &&
+                                todayCal.get(Calendar.DAY_OF_YEAR) == dueCal.get(Calendar.DAY_OF_YEAR)
+
+                        val diffMillis = dueCal.timeInMillis - currentMillis
+                        val name = if (tx.title.isNotEmpty() && tx.title != "-") tx.title else "অজ্ঞাত"
+
+                        if (diffMillis < 0 && !isToday) {
+                            val msg = if (tx.type == "Lending") "সতর্কতা: $name এর ৳${amountDue.toInt()} দেওয়ার সময় পার হয়ে গেছে!"
+                            else "সতর্কতা: $name কে ৳${amountDue.toInt()} পরিশোধ করার সময় পার হয়ে গেছে!"
+                            alerts.add(AlertItem(msg, AlertType.OVERDUE))
+                        } else if (isToday) {
+                            val msg = if (tx.type == "Lending") "আজ $name এর ৳${amountDue.toInt()} দেওয়ার কথা"
+                            else "আজ $name কে ৳${amountDue.toInt()} দিতে হবে"
+                            alerts.add(AlertItem(msg, AlertType.TODAY))
+                        } else if (diffMillis in 0..(86400000L * 3)) { // আগামী ৩ দিন
+                            val sdf = SimpleDateFormat("dd MMM", Locale("bn", "BD"))
+                            val dateStr = sdf.format(Date(dueDate))
+                            val msg = if (tx.type == "Lending") "আগামী $dateStr তারিখে $name ৳${amountDue.toInt()} দেবেন"
+                            else "আগামী $dateStr তারিখে $name কে ৳${amountDue.toInt()} দিতে হবে"
+                            alerts.add(AlertItem(msg, AlertType.UPCOMING))
+                        }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface, // Modern clean look
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                )
-            )
+                }
+            }
         }
-    ) { paddingValues ->
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(700)) + slideInVertically(tween(700)) { 150 },
+        alerts
+    }
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(tween(700)) + slideInVertically(tween(700)) { 150 },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                // ডেট রেঞ্জ ড্রপডাউন
-                DateRangeFilter(
-                    selectedOption = selectedDateFilter,
-                    onOptionSelected = { option ->
-                        if (option == "কাস্টম রেঞ্জ") {
-                            showCustomDateDialog = true
-                        } else {
-                            selectedDateFilter = option
-                        }
+            DateRangeFilter(
+                selectedOption = selectedDateFilter,
+                onOptionSelected = { option ->
+                    if (option == "কাস্টম রেঞ্জ") {
+                        showCustomDateDialog = true
+                    } else {
+                        selectedDateFilter = option
                     }
+                }
+            )
+
+            // --- Custom Date Range Dialogs ---
+            if (showCustomDateDialog) {
+                val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
+                val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
+                val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+
+                AlertDialog(
+                    onDismissRequest = { showCustomDateDialog = false },
+                    title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            OutlinedButton(
+                                onClick = { showStartDatePicker = true },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(startStr, fontSize = 16.sp)
+                            }
+                            OutlinedButton(
+                                onClick = { showEndDatePicker = true },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(endStr, fontSize = 16.sp)
+                            }
+                        }
+                    },
+                    confirmButton = { TextButton(onClick = { showCustomDateDialog = false; selectedDateFilter = "কাস্টম রেঞ্জ" }) { Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold) } },
+                    dismissButton = { TextButton(onClick = { showCustomDateDialog = false; customStartDate = null; customEndDate = null }) { Text("বাতিল", color = Color.Red) } }
                 )
+            }
+            if (showStartDatePicker) {
+                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
+                DatePickerDialog(
+                    onDismissRequest = { showStartDatePicker = false },
+                    confirmButton = { TextButton(onClick = { customStartDate = datePickerState.selectedDateMillis; showStartDatePicker = false }) { Text("ঠিক আছে") } },
+                    dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") } }
+                ) { DatePicker(state = datePickerState) }
+            }
+            if (showEndDatePicker) {
+                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
+                DatePickerDialog(
+                    onDismissRequest = { showEndDatePicker = false },
+                    confirmButton = { TextButton(onClick = { customEndDate = datePickerState.selectedDateMillis; showEndDatePicker = false }) { Text("ঠিক আছে") } },
+                    dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") } }
+                ) { DatePicker(state = datePickerState) }
+            }
 
-                // --- Custom Date Range Main Dialog ---
-                if (showCustomDateDialog) {
-                    val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
-                    val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
-                    val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+            Spacer(modifier = Modifier.height(24.dp))
 
-                    AlertDialog(
-                        onDismissRequest = { showCustomDateDialog = false },
-                        title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                // Start Date Button
-                                OutlinedButton(
-                                    onClick = { showStartDatePicker = true },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = if (customStartDate != null) MaterialTheme.colorScheme.primary else Color.Gray
-                                    )
-                                ) {
-                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(startStr, fontSize = 16.sp)
-                                }
-
-                                // End Date Button
-                                OutlinedButton(
-                                    onClick = { showEndDatePicker = true },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = if (customEndDate != null) MaterialTheme.colorScheme.primary else Color.Gray
-                                    )
-                                ) {
-                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(endStr, fontSize = 16.sp)
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showCustomDateDialog = false
-                                selectedDateFilter = "কাস্টম রেঞ্জ"
-                            }) {
-                                Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                showCustomDateDialog = false
-                                customStartDate = null
-                                customEndDate = null
-                            }) {
-                                Text("বাতিল", color = Color.Red)
-                            }
-                        }
-                    )
-                }
-
-                // --- Start Date Picker ---
-                if (showStartDatePicker) {
-                    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
-                    DatePickerDialog(
-                        onDismissRequest = { showStartDatePicker = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                customStartDate = datePickerState.selectedDateMillis
-                                showStartDatePicker = false
-                            }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") }
-                        }
-                    ) {
-                        DatePicker(
-                            state = datePickerState,
-                            title = { Text(" শুরুর তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
-                        )
-                    }
-                }
-
-                // --- End Date Picker ---
-                if (showEndDatePicker) {
-                    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
-                    DatePickerDialog(
-                        onDismissRequest = { showEndDatePicker = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                customEndDate = datePickerState.selectedDateMillis
-                                showEndDatePicker = false
-                            }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") }
-                        }
-                    ) {
-                        DatePicker(
-                            state = datePickerState,
-                            title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ১. কাস্টম পাই চার্ট
+            // ১. কাস্টম পাই চার্ট অথবা খালি অবস্থার (Empty State) লেআউট
+            if (allTransactions.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 4.dp)
+                        .shadow(4.dp, RoundedCornerShape(24.dp), spotColor = Color.LightGray)
+                        .background(Color.White, RoundedCornerShape(24.dp))
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("হিসাব শুরু করুন!", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("আপনার প্রথম আয় বা ব্যয় যোগ করতে নিচের বাটনগুলোতে ক্লিক করুন।", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 22.sp)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ShortcutCard(title = "আয় যোগ", icon = Icons.Rounded.Add, color = Color(0xFF10B981), modifier = Modifier.weight(1f)) { navController.navigate("add_income") }
+                            ShortcutCard(title = "ব্যয় যোগ", icon = Icons.Rounded.Add, color = Color(0xFFF43F5E), modifier = Modifier.weight(1f)) { navController.navigate("add_expense") }
+                        }
+                    }
+                }
+            } else {
+                // --- শুধুমাত্র পাই চার্ট (মাঝখানে বড় করে) ---
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CustomUnevenPieChart(income = totalIncome, expense = totalExpense, balance = balance)
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // ২. ফিন্যান্সিয়াল সামারি কার্ড
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    SummaryMiniCard(
-                        title = "মোট আয়",
-                        amount = totalIncome,
-                        color = Color(0xFFFFCA28), // Yellow
-                        modifier = Modifier.weight(1f)
-                    )
-                    SummaryMiniCard(
-                        title = "মোট ব্যয়",
-                        amount = totalExpense,
-                        color = Color(0xFFFF7043), // Orange/Red
-                        modifier = Modifier.weight(1f)
-                    )
-                    SummaryMiniCard(
-                        title = "ব্যালেন্স",
-                        amount = balance,
-                        color = Color(0xFF26C6DA), // Teal
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ৩. কুইক শর্টকাট সেকশন
-                QuickShortcutsSection(navController = navController)
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // ৪. প্রফেশনাল বার চার্ট
-                TopExpensesSection(filteredTransactions)
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // ৫. সাম্প্রতিক লেনদেন
-                RecentTransactionsSection(filteredTransactions)
-
-                Spacer(modifier = Modifier.height(80.dp))
+                // --- ডাইনামিক এলার্ট টিকার ---
+                DynamicAlertTicker(alerts = realAlerts)
             }
-        }
-    }
-}
 
-// --- শর্টকাট সেকশন ---
-@Composable
-fun QuickShortcutsSection(navController: NavController) {
-    val navigateToTab = { route: String ->
-        navController.navigate(route) {
-            popUpTo(navController.graph.startDestinationId) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
+            Spacer(modifier = Modifier.height(24.dp))
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ShortcutCard(
-            title = "লেনদেন",
-            icon = Icons.Rounded.ReceiptLong,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f),
-            onClick = { navigateToTab("transactions") }
-        )
-        ShortcutCard(
-            title = "আয় যোগ",
-            icon = Icons.Rounded.Add,
-            color = Color(0xFF4CAF50), // Green
-            modifier = Modifier.weight(1f),
-            onClick = { navController.navigate("add_income") }
-        )
-        ShortcutCard(
-            title = "ব্যয় যোগ",
-            icon = Icons.Rounded.Add,
-            color = Color(0xFFF44336), // Red
-            modifier = Modifier.weight(1f),
-            onClick = { navController.navigate("add_expense") }
-        )
-    }
-}
-
-@Composable
-fun ShortcutCard(title: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
-    Card(
-        modifier = modifier
-            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = color.copy(alpha = 0.5f))
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = color,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            // ২. ডাইনামিক ফিন্যান্সিয়াল সামারি কার্ডস এবং ব্লার স্লাইডিং বাটন
+            FinancialSummarySection(
+                totalIncome = totalIncome,
+                totalExpense = totalExpense,
+                balance = balance,
+                realReceivable = realReceivable,
+                realPayable = realPayable
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (allTransactions.isNotEmpty()) {
+                QuickShortcutsSection(navController = navController)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+            TopExpensesSection(filteredTransactions)
+            Spacer(modifier = Modifier.height(40.dp))
+            RecentTransactionsSection(filteredTransactions)
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-data class SliceData(val name: String, val value: Float, val percentage: Float, val color: Color)
+// ১. ডেটা ক্লাস
+data class SummaryCardItem(val title: String, val amount: Float, val color: Color)
 
+// ২. মূল সামারি সেকশন কম্পোজেবল
 @Composable
-fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
-    val totalVolume = income + expense + if (balance > 0) balance else 0f
+fun FinancialSummarySection(
+    totalIncome: Float,
+    totalExpense: Float,
+    balance: Float,
+    realReceivable: Float,
+    realPayable: Float
+) {
+    var showMoreSummary by remember { mutableStateOf(false) }
 
-    if (totalVolume == 0f) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("এই সময়ে কোনো হিসাব নেই", color = Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-        return
-    }
-
-    val incPct = (income / totalVolume) * 100
-    val expPct = (expense / totalVolume) * 100
-    val balPct = if (balance > 0) (balance / totalVolume) * 100 else 0f
-
-    val slices = listOf(
-        SliceData("আয়", income, incPct, Color(0xFFFFCA28)),
-        SliceData("খরচ", expense, expPct, Color(0xFFFF7043)),
-        SliceData("আছে", if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA))
-    ).filter { it.value > 0f }
-
-    val sortedSlices = slices.sortedByDescending { it.value }
-
-    val textMeasurer = rememberTextMeasurer()
-    var animationPlayed by remember { mutableStateOf(false) }
-
-    val animatableSweep by animateFloatAsState(
-        targetValue = if (animationPlayed) 360f else 0f,
-        animationSpec = tween(1200),
-        label = "pie_anim"
+    val summaryItems = listOf(
+        SummaryCardItem("মোট আয়", totalIncome, Color(0xFFFFCA28)),
+        SummaryCardItem("মোট ব্যয়", totalExpense, Color(0xFFFF7043)),
+        SummaryCardItem("বর্তমান ব্যালেন্স", balance, Color(0xFF26C6DA)),
+        SummaryCardItem("মোট পাওনা", realReceivable, Color(0xFF10B981)),
+        SummaryCardItem("মোট ঋণ", realPayable, Color(0xFFF43F5E))
     )
 
-    LaunchedEffect(key1 = totalVolume) { animationPlayed = true }
+    val summaryColumns = 3 // প্রতি লাইনে ৩টি কার্ড থাকবে
+    val chunkedSummaries = summaryItems.chunked(summaryColumns)
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val canvasCenter = center
-        val maxRadius = size.minDimension / 3.2f
-
-        var startAngle = -90f
-
-        slices.forEach { slice ->
-            val sweepAngle = (slice.value / totalVolume) * animatableSweep
-
-            val rank = sortedSlices.indexOf(slice)
-            val radiusMultiplier = when(rank) {
-                0 -> 1.0f
-                1 -> 0.88f
-                else -> 0.78f
-            }
-            val sliceRadius = maxRadius * radiusMultiplier
-
-            drawArc(
-                color = Color.Black.copy(alpha = 0.08f),
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = true,
-                topLeft = Offset(canvasCenter.x - sliceRadius + 8f, canvasCenter.y - sliceRadius + 12f),
-                size = Size(sliceRadius * 2, sliceRadius * 2)
-            )
-
-            drawArc(
-                color = slice.color,
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = true,
-                topLeft = Offset(canvasCenter.x - sliceRadius, canvasCenter.y - sliceRadius),
-                size = Size(sliceRadius * 2, sliceRadius * 2)
-            )
-
-            if (animatableSweep == 360f && slice.percentage > 0f) {
-                val midAngle = (startAngle + sweepAngle / 2) * (Math.PI / 180f)
-
-                val lineStartRadius = sliceRadius * 0.85f
-
-                // ডাইনামিক লাইনের দৈর্ঘ্য: পার্সেন্টেজ কম হলে লাইন লম্বা হবে
-                val extension = when {
-                    slice.percentage < 5f -> 65f   // খুব কম হলে অনেক লম্বা
-                    slice.percentage < 15f -> 45f  // একটু কম হলে মাঝারি লম্বা
-                    else -> 25f                    // স্বাভাবিক
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(400)), // স্মুথ এক্সপ্যান্ড অ্যানিমেশন
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // --- প্রথম সারি: সবসময় দৃশ্যমান থাকবে ---
+        if (chunkedSummaries.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val firstRowItems = chunkedSummaries[0]
+                firstRowItems.forEach { item ->
+                    SummaryMiniCard(
+                        title = item.title,
+                        amount = item.amount,
+                        color = item.color,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
-                val lineEndRadius = sliceRadius + extension
+                // যদি প্রথম লাইনে ৩টির কম আইটেম থাকে, ফাঁকা স্পেস দিয়ে পূরণ
+                val emptySpots = summaryColumns - firstRowItems.size
+                for (i in 0 until emptySpots) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
 
-                val startX = canvasCenter.x + (cos(midAngle) * lineStartRadius).toFloat()
-                val startY = canvasCenter.y + (sin(midAngle) * lineStartRadius).toFloat()
+        // --- এক্সপ্যান্ডেবল সেকশন (দ্বিতীয় বা তার পরের সারিগুলোর জন্য) ---
+        if (chunkedSummaries.size > 1) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center // বাটনটি কার্ডের মাঝখানে ভাসবে
+            ) {
+                // ব্লার এবং আলফা অ্যাডজাস্টমেন্ট
+                val blurRadius by animateDpAsState(
+                    targetValue = if (showMoreSummary) 0.dp else 4.dp,
+                    label = "blur_anim"
+                )
+                val alphaValue by animateFloatAsState(
+                    targetValue = if (showMoreSummary) 1f else 0.6f,
+                    label = "alpha_anim"
+                )
 
-                val endX = canvasCenter.x + (cos(midAngle) * lineEndRadius).toFloat()
-                val endY = canvasCenter.y + (sin(midAngle) * lineEndRadius).toFloat()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 14.dp) // বাটনের জন্য নিচে জায়গা রাখা হয়েছে
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (showMoreSummary) Dp.Unspecified else 75.dp) // উচ্চতা 75.dp যাতে কার্ডের ৮০% দেখা যায়
+                            .clipToBounds()
+                    ) {
+                        // ২য় এবং পরের সব সারি এখানে রেন্ডার হবে
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer { alpha = alphaValue }
+                                .blur(radius = blurRadius)
+                                .padding(bottom = 16.dp), // নিচের দিকে 16.dp প্যাডিং যোগ করা হয়েছে যাতে কার্ড বা গ্লো না কাটে
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val remainingRows = chunkedSummaries.drop(1) // প্রথম সারি বাদে বাকিগুলো
+                            remainingRows.forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    rowItems.forEach { item ->
+                                        SummaryMiniCard(
+                                            title = item.title,
+                                            amount = item.amount,
+                                            color = item.color,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
 
-                val isRightSide = cos(midAngle) >= 0
-                val elbowLength = 20f // অনুভূমিক (ডান/বাম) লাইনের দৈর্ঘ্য
-                val elbowX = endX + if (isRightSide) elbowLength else -elbowLength
+                                    val emptySpots = summaryColumns - rowItems.size
+                                    for (i in 0 until emptySpots) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
 
-                drawLine(color = slice.color, start = Offset(startX, startY), end = Offset(endX, endY), strokeWidth = 4f)
-                drawLine(color = slice.color, start = Offset(endX, endY), end = Offset(elbowX, endY), strokeWidth = 4f)
+                        // ফেইড ইফেক্ট (Gradient fade-out)
+                        if (!showMoreSummary) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color(0xFFF8FAFC) // আপনার স্ক্রিনের ব্যাকগ্রাউন্ড কালার দিন
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
+                }
 
-                val pctText = textMeasurer.measure(text = "${slice.percentage.roundToInt()}%", style = TextStyle(color = Color.DarkGray, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold))
-                val nameText = textMeasurer.measure(text = slice.name, style = TextStyle(color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold))
-
-                val textWidth = maxOf(pctText.size.width, nameText.size.width)
-
-                val textX = if (isRightSide) elbowX + 6f else elbowX - textWidth - 6f
-                val textY = endY - (pctText.size.height + nameText.size.height) / 2f
-
-                val pctX = if (isRightSide) textX else textX + textWidth - pctText.size.width
-                val nameX = if (isRightSide) textX else textX + textWidth - nameText.size.width
-
-                drawText(textLayoutResult = pctText, topLeft = Offset(pctX, textY))
-                drawText(textLayoutResult = nameText, topLeft = Offset(nameX, textY + pctText.size.height))
+                // "আরো দেখুন" বাটনটি কার্ডের ঠিক মাঝখানে ভাসবে (লুকানো অবস্থায়)
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !showMoreSummary,
+                    enter = fadeIn(tween(300)) + scaleIn(),
+                    exit = fadeOut(tween(300)) + scaleOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(6.dp, RoundedCornerShape(50))
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                RoundedCornerShape(50)
+                            )
+                            .clickable { showMoreSummary = true }
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "আরো দেখুন",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
 
-            startAngle += sweepAngle
+            // "বন্ধ করুন" বাটনটি কার্ডের ঠিক নিচে দেখাবে (ওপেন অবস্থায়)
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showMoreSummary,
+                enter = expandVertically() + fadeIn(tween(400)),
+                exit = shrinkVertically() + fadeOut(tween(300))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .clickable { showMoreSummary = false }
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "বন্ধ করুন",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowUp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
+// ৩. গ্লোয়িং শ্যাডো সহ মিনি কার্ড
 @Composable
-fun SummaryMiniCard(title: String, amount: Float, color: Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.shadow(2.dp, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
+fun SummaryMiniCard(
+    title: String,
+    amount: Float,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            // গ্লোয়িং শ্যাডো ইফেক্ট
+            .drawBehind {
+                val shadowColor = color.copy(alpha = 0.4f).toArgb() // গ্লো এর অস্বচ্ছতা (Alpha)
+
+                val paint = Paint().asFrameworkPaint().apply {
+                    this.color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        16f, // ব্লার রেডিয়াস (যত বাড়াবেন, গ্লো তত ছড়াবে)
+                        0f, // X অক্ষ বরাবর সরণ
+                        8f, // Y অক্ষ বরাবর সরণ (নিচের দিকে শ্যাডো নামবে)
+                        shadowColor
+                    )
+                }
+
+                drawContext.canvas.nativeCanvas.drawRoundRect(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    12.dp.toPx(), // আপনার কার্ডের কর্নার রেডিয়াসের সাথে মিলিয়ে দিন
+                    12.dp.toPx(),
+                    paint
+                )
+            }
+            // কার্ডের নিজস্ব স্টাইল
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .padding(12.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color.copy(alpha = 0.08f))
-                .padding(vertical = 16.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
-            Text(text = title, fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(text = "৳${amount.toInt()}", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = title,
+                color = Color.Gray,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "৳ $amount",
+                color = color,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -639,16 +675,16 @@ fun SectionTitle(title: String) {
 
 @Composable
 fun TopExpensesSection(transactions: List<Transaction>) {
-    val totalExpense = transactions.filter { it.type == "Expense" }.sumOf { it.amount }.toFloat()
+    val totalExpense = transactions.filter { tx: Transaction -> tx.type == "Expense" }.map { it.amount }.sum().toFloat()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionTitle(title = "শীর্ষ ৫ খরচের খাত")
         Spacer(modifier = Modifier.height(24.dp))
 
         val topExpenses = transactions
-            .filter { it.type == "Expense" }
-            .groupBy { it.category }
-            .map { (category, list) -> Pair(category, list.sumOf { it.amount }.toFloat()) }
+            .filter { tx: Transaction -> tx.type == "Expense" }
+            .groupBy { tx: Transaction -> tx.category }
+            .map { (category, list) -> Pair(category, list.map { it.amount }.sum().toFloat()) }
             .sortedByDescending { it.second }
             .take(5)
 
@@ -805,7 +841,7 @@ fun CustomVerticalBar(
 @Composable
 fun RecentTransactionsSection(transactions: List<Transaction>) {
     var selectedFilter by remember { mutableStateOf("সব") }
-    val filterOptions = listOf("সব", "আয়", "ব্যয়")
+    val filterOptions = listOf("সব", "আয়", "ব্যয়", "দেনা-পাওনা")
 
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionTitle(title = "সাম্প্রতিক লেনদেন")
@@ -826,13 +862,13 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                         .clickable { selectedFilter = option }
-                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = option,
                         color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 }
@@ -841,10 +877,11 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        val filteredTransactions = transactions.filter {
+        val filteredTransactions = transactions.filter { tx: Transaction ->
             when (selectedFilter) {
-                "আয়" -> it.type == "Income"
-                "ব্যয়" -> it.type == "Expense"
+                "আয়" -> tx.type == "Income"
+                "ব্যয়" -> tx.type == "Expense"
+                "দেনা-পাওনা" -> tx.type == "Lending" || tx.type == "Borrowing"
                 else -> true
             }
         }.sortedByDescending { it.date }.take(10)
@@ -859,8 +896,8 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
             }
         } else {
             Column(
-                modifier = Modifier.animateContentSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.animateContentSize().padding(bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp) // কার্ডগুলোর মাঝের দূরত্ব কমানো হয়েছে (10dp থেকে 8dp)
             ) {
                 filteredTransactions.forEach { transaction ->
                     key(transaction.id) {
@@ -874,48 +911,594 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
 
 @Composable
 fun RecentTransactionCard(transaction: Transaction) {
-    val isIncome = transaction.type == "Income"
-    val color = if (isIncome) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val sign = if (isIncome) "+" else "-"
+    val (themeColor, lightThemeColor, amountPrefix) = when (transaction.type) {
+        "Income" -> Triple(Color(0xFF4CAF50), Color(0xFFE8F5E9), "+")
+        "Expense" -> Triple(Color(0xFFF44336), Color(0xFFFFEBEE), "-")
+        "Borrowing" -> Triple(Color(0xFFF59E0B), Color(0xFFFEF3C7), "+")
+        "Lending" -> Triple(Color(0xFF3B82F6), Color(0xFFEFF6FF), "-")
+        else -> Triple(Color.Gray, Color(0xFFF1F5F9), "")
+    }
+
     val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
     val dateString = sdf.format(Date(transaction.date))
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+    // Card এর বদলে Box ব্যবহার করা হয়েছে গ্লো ইফেক্ট দেওয়ার জন্য
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            // ট্রানজ্যাকশনের টাইপ অনুযায়ী ডায়নামিক গ্লোয়িং শ্যাডো
+            .drawBehind {
+                val shadowColor = themeColor.copy(alpha = 0.2f).toArgb() // গ্লো এর অপাসিটি কমানো হয়েছে যাতে হালকা লাগে
+
+                val paint = Paint().asFrameworkPaint().apply {
+                    this.color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        12f, // ব্লার রেডিয়াস
+                        0f,
+                        6f, // নিচের দিকে হালকা শ্যাডো
+                        shadowColor
+                    )
+                }
+
+                drawContext.canvas.nativeCanvas.drawRoundRect(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    12.dp.toPx(), // রাউন্ডেড কর্নার 16 থেকে 12 করা হয়েছে
+                    12.dp.toPx(),
+                    paint
+                )
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp), // আগের 16dp প্যাডিং কমিয়ে কার্ড স্লিম করা হয়েছে
             verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp) // আইকনের সাইজ 52dp থেকে কমিয়ে 40dp করা হয়েছে
+                    .clip(CircleShape)
+                    .background(lightThemeColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = transaction.category.take(1).uppercase(),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp, // ফন্ট সাইজ 20sp থেকে কমানো হয়েছে
+                    color = themeColor
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = transaction.title,
+                    fontSize = 14.sp, // 16sp থেকে কমানো হয়েছে
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp)) // মাঝের গ্যাপ কমানো হয়েছে
+                Text(
+                    text = "${transaction.category} • $dateString",
+                    fontSize = 11.sp, // 13sp থেকে কমানো হয়েছে
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Text(
+                text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                fontSize = 15.sp, // 18sp থেকে কমিয়ে 15sp করা হয়েছে
+                fontWeight = FontWeight.ExtraBold,
+                color = themeColor
+            )
+        }
+    }
+}
+
+// --- ডাইনামিক এলার্ট টিকার কম্পোনেন্ট ---
+enum class AlertType { UPCOMING, TODAY, OVERDUE }
+data class AlertItem(val message: String, val type: AlertType)
+
+@Composable
+fun DynamicAlertTicker(alerts: List<AlertItem>) {
+    if (alerts.isEmpty()) return
+
+    var currentIndex by remember { mutableStateOf(0) }
+
+    LaunchedEffect(alerts) {
+        while (true) {
+            delay(4000) // প্রতি ৪ সেকেন্ড পর পর স্লাইড করবে
+            if (alerts.isNotEmpty()) {
+                currentIndex = (currentIndex + 1) % alerts.size
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(12.dp))
+            .background(Color(0xFFFFF9C4), RoundedCornerShape(12.dp)) // হালকা হলুদ ব্যাকগ্রাউন্ড
+            .clickable { /* ভবিষ্যতে আপডেটের পপ-আপ আসবে */ }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Rounded.NotificationsActive,
+                contentDescription = null,
+                tint = Color(0xFFFF9800),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+
+            AnimatedContent(
+                targetState = currentIndex,
+                transitionSpec = {
+                    slideInHorizontally { width -> width } + fadeIn() togetherWith
+                            slideOutHorizontally { width -> -width } + fadeOut()
+                }, label = "ticker_anim"
+            ) { targetIndex ->
+                if (alerts.isNotEmpty() && targetIndex < alerts.size) {
+                    val alert = alerts[targetIndex]
+                    val color = when (alert.type) {
+                        AlertType.UPCOMING -> Color.DarkGray
+                        AlertType.TODAY -> Color(0xFFFF9800)
+                        AlertType.OVERDUE -> Color.Red
+                    }
+                    Text(
+                        text = alert.message,
+                        fontSize = 13.sp,
+                        fontWeight = if (alert.type == AlertType.OVERDUE) FontWeight.Bold else FontWeight.Medium,
+                        color = color,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ডেটা ক্লাস: মেনু আইটেমগুলোকে সাজিয়ে রাখার জন্য
+data class GridShortcut(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val color: androidx.compose.ui.graphics.Color, val route: String)
+
+// --- নতুন করে সাজানো এক্সপ্যান্ডেবল ৪-কলামের শর্টকাট সেকশন ---
+@Composable
+fun QuickShortcutsSection(navController: NavController) {
+    val context = LocalContext.current
+
+    // কার্ড লুকানো/দেখানোর জন্য স্টেট
+    var showMoreShortcuts by remember { mutableStateOf(false) }
+
+    // আপনার ৫টি মেনুর লিস্ট (ভবিষ্যতে এখানে শুধু কমা দিয়ে নতুন আইটেম যোগ করলেই অটোমেটিক ২য়/৩য় লাইনে বসে যাবে)
+    val shortcuts = listOf(
+        GridShortcut("লেনদেন", Icons.Rounded.ReceiptLong, MaterialTheme.colorScheme.primary, "transactions"),
+        GridShortcut("আয় যোগ", Icons.Rounded.Add, Color(0xFF10B981), "add_income"),
+        GridShortcut("ব্যয় যোগ", Icons.Rounded.Add, Color(0xFFF43F5E), "add_expense"),
+        GridShortcut("আয়-ব্যয়", Icons.Rounded.AccountBalanceWallet, Color(0xFF3B82F6), "income_expense"),
+        GridShortcut("দেনা-পাওনা", Icons.Rounded.Handshake, Color(0xFF9C27B0), "debt_credit")
+    )
+
+    val columns = 4 // প্রতি লাইনে ৪টি কার্ড থাকবে
+    val chunkedShortcuts = shortcuts.chunked(columns)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(400)), // স্মুথ এক্সপ্যান্ড অ্যানিমেশন
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // --- প্রথম সারি: সবসময় দৃশ্যমান থাকবে ---
+        if (chunkedShortcuts.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val firstRowItems = chunkedShortcuts[0]
+                firstRowItems.forEach { item ->
+                    GridShortcutCard(
+                        item = item,
+                        modifier = Modifier.weight(1f),
+                        onClick = { navigateToShortcut(item, navController, context) }
+                    )
+                }
+
+                // যদি প্রথম লাইনে ৪টির কম আইটেম থাকে, তবে বাকি জায়গাগুলো ফাঁকা স্পেস দিয়ে পূরণ
+                val emptySpots = columns - firstRowItems.size
+                for (i in 0 until emptySpots) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
+        // --- এক্সপ্যান্ডেবল সেকশন (দ্বিতীয় বা তার পরের সারিগুলোর জন্য) ---
+        if (chunkedShortcuts.size > 1) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center // বাটনটি কার্ডের মাঝখানে ভাসবে
+            ) {
+                // ব্লার এবং আলফা অ্যাডজাস্টমেন্ট
+                val blurRadius by animateDpAsState(targetValue = if (showMoreShortcuts) 0.dp else 4.dp, label = "blur_anim")
+                val alphaValue by animateFloatAsState(targetValue = if (showMoreShortcuts) 1f else 0.6f, label = "alpha_anim")
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 14.dp) // বাটনের জন্য নিচে জায়গা রাখা হয়েছে
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (showMoreShortcuts) Dp.Unspecified else 75.dp) // উচ্চতা 75.dp যাতে কার্ডের ৮০% দেখা যায়
+                            .clipToBounds()
+                    ) {
+                        // ২য় এবং পরের সব সারি এখানে রেন্ডার হবে
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer { alpha = alphaValue }
+                                .blur(radius = blurRadius),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val remainingRows = chunkedShortcuts.drop(1) // প্রথম সারি বাদে বাকিগুলো
+                            remainingRows.forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    rowItems.forEach { item ->
+                                        GridShortcutCard(
+                                            item = item,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { navigateToShortcut(item, navController, context) }
+                                        )
+                                    }
+
+                                    val emptySpots = columns - rowItems.size
+                                    for (i in 0 until emptySpots) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+
+                        // ফেইড ইফেক্ট (Gradient fade-out)
+                        if (!showMoreShortcuts) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color(0xFFF8FAFC) // স্ক্রিনের ব্যাকগ্রাউন্ড কালার
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
+                }
+
+                // "আরো দেখুন" বাটনটি কার্ডের ঠিক মাঝখানে ভাসবে (লুকানো অবস্থায়)
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !showMoreShortcuts,
+                    enter = fadeIn(tween(300)) + scaleIn(),
+                    exit = fadeOut(tween(300)) + scaleOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(6.dp, RoundedCornerShape(50))
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White)
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(50))
+                            .clickable { showMoreShortcuts = true }
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "আরো দেখুন",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // "বন্ধ করুন" বাটনটি কার্ডের ঠিক নিচে দেখাবে (ওপেন অবস্থায়)
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showMoreShortcuts,
+                enter = expandVertically() + fadeIn(tween(400)),
+                exit = shrinkVertically() + fadeOut(tween(300))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .clickable { showMoreShortcuts = false }
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "বন্ধ করুন",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowUp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// নেভিগেশন হ্যান্ডেল করার একটি ছোট হেল্পার ফাংশন
+fun navigateToShortcut(item: GridShortcut, navController: NavController, context: android.content.Context) {
+    try {
+        if (item.route == "transactions") {
+            navController.navigate(item.route) {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else {
+            navController.navigate(item.route)
+        }
+    } catch (e: Exception) {
+        Toast.makeText(context, "Routing Error: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// --- ৪ কলামের জন্য পারফেক্ট মিনিমাল কার্ড ডিজাইন ---
+@Composable
+fun GridShortcutCard(item: GridShortcut, modifier: Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier
+            .height(95.dp) // সব কার্ডের সমান উচ্চতা
+            .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = item.color.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp), // কম্প্যাক্ট প্যাডিং
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(item.color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = item.color,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = item.title,
+                fontSize = 11.sp, // ৪টি কার্ড এক লাইনে বসানোর জন্য ছোট ফন্ট
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// এই ShortcutCard টি শুধুমাত্র খালি অবস্থার (Empty State) জন্য রাখা হলো
+@Composable
+fun ShortcutCard(title: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier
+            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = color.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(color.copy(alpha = 0.12f)),
+                    .background(color.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = transaction.category.take(1).uppercase(), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = color)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = color,
+                    modifier = Modifier.size(28.dp)
+                )
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = transaction.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "${transaction.category} • $dateString", fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
-            }
-
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "$sign ৳${transaction.amount.toInt()}",
-                fontSize = 18.sp,
+                text = title,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = color
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
             )
+        }
+    }
+}
+
+data class SliceData(val name: String, val value: Float, val percentage: Float, val color: Color)
+
+@Composable
+fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
+    val totalVolume = income + expense + if (balance > 0) balance else 0f
+
+    if (totalVolume == 0f) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("এই সময়ে কোনো হিসাব নেই", color = Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+        return
+    }
+
+    val incPct = (income / totalVolume) * 100
+    val expPct = (expense / totalVolume) * 100
+    val balPct = if (balance > 0) (balance / totalVolume) * 100 else 0f
+
+    val slices = listOf(
+        SliceData("আয়", income, incPct, Color(0xFFFFCA28)),
+        SliceData("খরচ", expense, expPct, Color(0xFFFF7043)),
+        SliceData("আছে", if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA))
+    ).filter { it.value > 0f }
+
+    val sortedSlices = slices.sortedByDescending { it.value }
+
+    val textMeasurer = rememberTextMeasurer()
+    var animationPlayed by remember { mutableStateOf(false) }
+
+    val animatableSweep by animateFloatAsState(
+        targetValue = if (animationPlayed) 360f else 0f,
+        animationSpec = tween(1200),
+        label = "pie_anim"
+    )
+
+    LaunchedEffect(key1 = totalVolume) { animationPlayed = true }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val canvasCenter = center
+        val maxRadius = size.minDimension / 2.8f
+
+        var startAngle = -90f
+
+        // গ্লো ইফেক্টের জন্য Paint অবজেক্ট তৈরি করা হচ্ছে
+        val paintWithGlow = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+
+        drawIntoCanvas { canvas ->
+            slices.forEach { slice ->
+                val sweepAngle = (slice.value / totalVolume) * animatableSweep
+
+                val rank = sortedSlices.indexOf(slice)
+                val radiusMultiplier = when(rank) {
+                    0 -> 1.0f
+                    1 -> 0.88f
+                    else -> 0.78f
+                }
+                val sliceRadius = maxRadius * radiusMultiplier
+
+                // গ্লো শ্যাডোর রঙ নির্ধারণ (স্লাইসের রঙের কিছুটা স্বচ্ছ সংস্করণ)
+                val shadowColorArgb = slice.color.copy(alpha = 0.5f).toArgb()
+
+                // নেটিভ Paint-এ শ্যাডো লেয়ার সেট করা হচ্ছে
+                // parameters: blurRadius, offsetX, offsetY, shadowColor
+                paintWithGlow.setShadowLayer(
+                    30f, // গ্লো কতটা ছড়াবে (blur)
+                    0f,  // X অক্ষের দিকে সরবে না
+                    0f,  // Y অক্ষের দিকে সরবে না (চারপাশে সমানভাবে ছড়াবে)
+                    shadowColorArgb
+                )
+                paintWithGlow.color = slice.color.toArgb()
+
+                // আর্কের জন্য রেক্টেঙ্গেল নির্ধারণ
+                val rect = Rect(
+                    Offset(canvasCenter.x - sliceRadius, canvasCenter.y - sliceRadius),
+                    Size(sliceRadius * 2, sliceRadius * 2)
+                )
+
+                // নেটিভ ক্যানভাসে গ্লো শ্যাডো সহ আর্ক আঁকা হচ্ছে
+                canvas.nativeCanvas.drawArc(
+                    rect.left, rect.top, rect.right, rect.bottom,
+                    startAngle, sweepAngle,
+                    true, // useCenter
+                    paintWithGlow
+                )
+
+                // লেবেল এবং লাইন আঁকার লজিক (আগের মতোই রাখা হয়েছে)
+                if (animatableSweep == 360f && slice.percentage > 0f) {
+                    val midAngle = (startAngle + sweepAngle / 2) * (Math.PI / 180f)
+
+                    val lineStartRadius = sliceRadius * 0.85f
+                    val extension = when {
+                        slice.percentage < 5f -> 45f
+                        slice.percentage < 15f -> 30f
+                        else -> 15f
+                    }
+
+                    val lineEndRadius = sliceRadius + extension
+
+                    val startX = canvasCenter.x + (cos(midAngle) * lineStartRadius).toFloat()
+                    val startY = canvasCenter.y + (sin(midAngle) * lineStartRadius).toFloat()
+
+                    val endX = canvasCenter.x + (cos(midAngle) * lineEndRadius).toFloat()
+                    val endY = canvasCenter.y + (sin(midAngle) * lineEndRadius).toFloat()
+
+                    val isRightSide = cos(midAngle) >= 0
+                    val elbowLength = 15f
+                    val elbowX = endX + if (isRightSide) elbowLength else -elbowLength
+
+                    // লাইনগুলো স্লাইসের রঙে আঁকা হচ্ছে
+                    drawLine(color = slice.color, start = Offset(startX, startY), end = Offset(endX, endY), strokeWidth = 3f)
+                    drawLine(color = slice.color, start = Offset(endX, endY), end = Offset(elbowX, endY), strokeWidth = 3f)
+
+                    val labelText = textMeasurer.measure(
+                        text = slice.name,
+                        style = TextStyle(color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                    )
+
+                    val textX = if (isRightSide) elbowX + 4f else elbowX - labelText.size.width - 4f
+                    val textY = endY - labelText.size.height / 2f
+
+                    // টেক্সট লেবেল আঁকা হচ্ছে
+                    drawText(textLayoutResult = labelText, topLeft = Offset(textX, textY))
+                }
+
+                startAngle += sweepAngle
+            }
         }
     }
 }
