@@ -1,89 +1,170 @@
 package com.almamun252.nikhuthisab.view
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC)), // হালকা গ্রে ব্যাকগ্রাউন্ড
-            contentAlignment = Alignment.Center
+    val auth = FirebaseAuth.getInstance()
+    val user = auth.currentUser
+
+    // স্টেট মেইনটেইন করার জন্য (ভবিষ্যতে ViewModel থেকে আসবে)
+    var autoBackupEnabled by remember { mutableStateOf(true) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC)) // মডার্ন স্লেট ব্যাকগ্রাউন্ড
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // --- প্রোফাইল কার্ড (User Info) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 32.dp)
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- ঘোরার (Rotation) অ্যানিমেশন ---
-                val infiniteTransition = rememberInfiniteTransition(label = "work_in_progress")
-                val rotation by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 3000, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "rotation_anim"
-                )
-
-                // অ্যানিমেটেড আইকন
+                // প্রোফাইল পিকচার (Google থেকে)
                 Box(
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Work in Progress",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .rotate(rotation) // আইকনটি ঘুরতে থাকবে
+                    AsyncImage(
+                        model = user?.photoUrl ?: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // মেসেজ টাইটেল
+                // নাম এবং ইমেইল
                 Text(
-                    text = "কাজ চলছে... 🛠️",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = user?.displayName ?: "ব্যবহারকারীর নাম",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // বিস্তারিত মেসেজ
                 Text(
-                    text = "প্রোফাইল সেকশন এবং গুগল ড্রাইভ ব্যাকআপ নিয়ে কাজ চলছে। কাজ শেষ হলেই নতুন আপডেটে এটি যুক্ত করে দেওয়া হবে!",
-                    fontSize = 15.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp
+                    text = user?.email ?: "example@gmail.com",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- ব্যাকআপ এবং সেটিংস সেকশন ---
+        Text(
+            text = "ডেটা ব্যাকআপ ও সেটিংস",
+            modifier = Modifier.align(Alignment.Start).padding(start = 8.dp, bottom = 12.dp),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF64748B)
+        )
+
+        SettingsItem(
+            title = "এখনই ব্যাকআপ নিন",
+            subtitle = "সব ডেটা সার্ভারে সেভ করুন",
+            icon = Icons.Rounded.CloudUpload,
+            iconColor = Color(0xFF005088),
+            onClick = { /* ব্যাকআপ ফাংশন কল হবে */ }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // অটো ব্যাকআপ সুইচ
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Rounded.History, contentDescription = null, tint = Color(0xFF11CAA0))
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("রাত ১২টায় অটো ব্যাকআপ", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("প্রতিদিন নীরবে আপডেট হবে", fontSize = 12.sp, color = Color.Gray)
+                }
+                Switch(
+                    checked = autoBackupEnabled,
+                    onCheckedChange = { autoBackupEnabled = it }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // --- লগআউট বাটন ---
+        Button(
+            onClick = {
+                auth.signOut()
+                navController.navigate("login") {
+                    popUpTo("main") { inclusive = true }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF43F5E))
+        ) {
+            Icon(Icons.Rounded.Logout, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("লগআউট করুন", fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@Composable
+fun SettingsItem(title: String, subtitle: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = iconColor)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
         }
     }
