@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "4553808180",
+    "project_id": "nikhut-hisab",
+    "storage_bucket": "nikhut-hisab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:4553808180:android:7b4fe94b9fced539d36d61",
+        "android_client_info": {
+          "package_name": "com.almamun252.nikhuthisab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "4553808180-57l6ubi20kkqui493drfsvonq1hrua09.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.almamun252.nikhuthisab",
+            "certificate_hash": "89dd371f69a9449b265cc5cb4fec609adf85de06"
+          }
+        },
+        {
+          "client_id": "4553808180-l9et4gh88aflnkvns082quf36htrpk9a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUrXlawGy9bcJjJEddx7cFkFY6Tv7DnrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "4553808180-l9et4gh88aflnkvns082quf36htrpk9a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -20,8 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.material.icons.rounded.EventAvailable
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Subject
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -77,6 +80,16 @@ fun AddTransactionScreen(
 
     var categoryExpanded by remember { mutableStateOf(false) }
 
+    // নতুন স্টেট: ধারে খরচের জন্য
+    var isBorrowedExpense by remember { mutableStateOf(false) }
+    var lenderName by remember { mutableStateOf("") }
+
+    // ধারে খরচের পরিশোধের তারিখের (Due Date) জন্য স্টেট
+    var dueDateMillis by remember { mutableStateOf<Long?>(null) }
+    var tempDueDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDueDatePicker by remember { mutableStateOf(false) }
+    var showDueTimePicker by remember { mutableStateOf(false) }
+
     val type = if (isIncome) "Income" else "Expense"
 
     // আধুনিক থিম কালার
@@ -96,6 +109,7 @@ fun AddTransactionScreen(
             category = if (it.category == "অন্যান্য") "" else it.category
             selectedDateMillis = it.date
             note = it.note ?: ""
+            // যদি এটি সাধারণ ব্যয় হয় এবং ভবিষ্যতে এডিট করতে আসে তখন আর ধারে খরচ দেখানোর দরকার নেই
         }
     }
 
@@ -126,7 +140,6 @@ fun AddTransactionScreen(
         .distinct()
         .filter { it != "অন্যান্য" } + "অন্যান্য"
 
-    // Scaffold রিমুভ করে Box দিয়ে শুরু করা হলো
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = isVisible,
@@ -140,7 +153,7 @@ fun AddTransactionScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // --- Custom Custom Top Bar (Back button, Title, Delete Button) ---
+                // --- Custom Top Bar ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -180,11 +193,11 @@ fun AddTransactionScreen(
                             Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = Color.Red)
                         }
                     } else {
-                        Spacer(modifier = Modifier.size(40.dp)) // ব্যালেন্স রাখার জন্য ফাঁকা জায়গা
+                        Spacer(modifier = Modifier.size(40.dp))
                     }
                 }
 
-                // --- Amount Input Field (Premium Large Look) ---
+                // --- Amount Input Field ---
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -216,6 +229,94 @@ fun AddTransactionScreen(
                 // --- Form Fields ---
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
+                    // --- নতুন ফিচার: নগদ নাকি ধারে খরচ? (শুধুমাত্র ব্যয়ের ক্ষেত্রে এবং নতুন এন্ট্রির সময় দেখাবে) ---
+                    if (!isIncome && transactionId == null) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("খরচের ধরন নির্বাচন করুন:", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 14.sp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // নগদ অপশন
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (!isBorrowedExpense) themeColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clickable { isBorrowedExpense = false }
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("নগদ খরচ", color = if (!isBorrowedExpense) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                }
+                                // ধারে অপশন
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isBorrowedExpense) themeColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clickable { isBorrowedExpense = true }
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("ধারে খরচ", color = if (isBorrowedExpense) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // ধারে খরচ হলে ধার প্রদানকারীর নাম ও ডেডলাইন নেওয়ার ফিল্ড
+                        AnimatedVisibility(visible = isBorrowedExpense) {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OutlinedTextField(
+                                    value = lenderName,
+                                    onValueChange = { lenderName = it },
+                                    label = { Text("কার কাছ থেকে ধার করা হলো? *") },
+                                    leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null, tint = themeColor) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = themeColor,
+                                        unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                        focusedLabelColor = themeColor
+                                    ),
+                                    singleLine = true
+                                )
+
+                                // Due Date (Deadline)
+                                val dueSdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = dueDateMillis?.let { dueSdf.format(Date(it)) } ?: "কবে পরিশোধ করবেন? (ঐচ্ছিক)",
+                                        onValueChange = { },
+                                        readOnly = true,
+                                        label = { Text("পরিশোধের ডেডলাইন") },
+                                        leadingIcon = { Icon(Icons.Rounded.EventAvailable, contentDescription = null, tint = if (dueDateMillis != null) themeColor else Color.Gray) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = themeColor,
+                                            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                            focusedLabelColor = themeColor
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showDueDatePicker = true }
+                                    )
+                                    if (dueDateMillis != null) {
+                                        IconButton(
+                                            onClick = { dueDateMillis = null },
+                                            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Clear", tint = Color.Gray)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Title Field
                     Column {
                         OutlinedTextField(
@@ -235,7 +336,7 @@ fun AddTransactionScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Suggestion Chips (Modern Design)
+                        // Suggestion Chips
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(suggestionChips) { chip ->
                                 Box(
@@ -349,20 +450,21 @@ fun AddTransactionScreen(
                     onClick = {
                         val amountValue = amount.toDoubleOrNull()
 
+                        // ভ্যালিডেশন
                         if (amountValue == null || amountValue <= 0) {
                             Toast.makeText(context, "সঠিক টাকার পরিমাণ দিন!", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
-                        val finalTitle = title.trim()
-                        if (finalTitle.isEmpty() && transactionId == null) {
-                            Toast.makeText(context, "সফলভাবে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
-                        } else if (transactionId == null) {
-                            Toast.makeText(context, "হিসাব সফলভাবে সেভ হয়েছে!", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "হিসাব সফলভাবে আপডেট হয়েছে!", Toast.LENGTH_SHORT).show()
+                        // যদি ধারে খরচ হয়, তবে ধার দাতার নাম চেক করা
+                        if (!isIncome && transactionId == null && isBorrowedExpense && lenderName.trim().isEmpty()) {
+                            Toast.makeText(context, "দয়া করে ধার প্রদানকারীর নাম লিখুন!", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
 
+                        val finalTitle = title.trim()
+
+                        // মূল ট্রানজেকশন (ব্যয় বা আয়)
                         val transaction = Transaction(
                             id = existingTransaction?.id ?: 0,
                             title = finalTitle.ifEmpty { "-" },
@@ -376,8 +478,28 @@ fun AddTransactionScreen(
                         if (transactionId != null && existingTransaction != null) {
                             viewModel.deleteTransaction(existingTransaction)
                             viewModel.insertTransaction(transaction)
+                            Toast.makeText(context, "হিসাব সফলভাবে আপডেট হয়েছে!", Toast.LENGTH_SHORT).show()
                         } else {
+                            // ১. মূল খরচ বা আয় সেভ করা
                             viewModel.insertTransaction(transaction)
+
+                            // ২. যদি ধারে খরচ হয়, তাহলে দ্বিতীয় একটি 'ঋণ' এন্ট্রি সেভ করা (ডাবল এন্ট্রি লজিক)
+                            if (!isIncome && isBorrowedExpense) {
+                                val borrowTitleContext = finalTitle.ifEmpty { category.ifEmpty { "অন্যান্য" } }
+                                val borrowingTx = Transaction(
+                                    id = 0,
+                                    title = lenderName.trim(), // ধার দাতার নাম
+                                    amount = amountValue,
+                                    type = "Borrowing", // ঋণ হিসেবে সেভ হবে
+                                    category = "ধার/লোন",
+                                    date = selectedDateMillis,
+                                    note = "ধারে করা খরচ: $borrowTitleContext",
+                                    dueDate = dueDateMillis // ডেডলাইন যুক্ত করা হলো
+                                )
+                                viewModel.insertTransaction(borrowingTx)
+                            }
+
+                            Toast.makeText(context, "সফলভাবে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
                         }
 
                         navController.popBackStack()
@@ -397,7 +519,6 @@ fun AddTransactionScreen(
                     )
                 }
 
-                // ফ্লোটিং নেভিগেশন বারের জন্য নিচে কিছুটা জায়গা রাখা
                 Spacer(modifier = Modifier.height(100.dp))
             }
         }
@@ -459,6 +580,59 @@ fun AddTransactionScreen(
                 }
             },
             title = { Text("সময় নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TimePicker(state = timePickerState)
+                }
+            }
+        )
+    }
+
+    // --- Due Date Picker (ডেডলাইনের তারিখ) ---
+    if (showDueDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis ?: System.currentTimeMillis())
+        DatePickerDialog(
+            onDismissRequest = { showDueDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { tempDueDateMillis = it }
+                    showDueDatePicker = false
+                    showDueTimePicker = true // ডেডলাইনের সময় সিলেক্ট করার জন্য
+                }) { Text("পরবর্তী (সময়)", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showDueDatePicker = false }) { Text("বাতিল", color = Color.Red) } }
+        ) { DatePicker(state = datePickerState, title = { Text(" ডেডলাইন নির্বাচন করুন", modifier = Modifier.padding(16.dp)) }) }
+    }
+
+    // --- Due Time Picker (ডেডলাইনের সময়) ---
+    if (showDueTimePicker) {
+        val cal = Calendar.getInstance().apply { timeInMillis = dueDateMillis ?: System.currentTimeMillis() }
+        val timePickerState = rememberTimePickerState(
+            initialHour = cal.get(Calendar.HOUR_OF_DAY),
+            initialMinute = cal.get(Calendar.MINUTE)
+        )
+
+        AlertDialog(
+            onDismissRequest = { showDueTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val calendar = Calendar.getInstance()
+                    calendar.timeInMillis = tempDueDateMillis
+                    calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    calendar.set(Calendar.MINUTE, timePickerState.minute)
+                    dueDateMillis = calendar.timeInMillis
+                    showDueTimePicker = false
+                }) {
+                    Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDueTimePicker = false }) { Text("বাতিল", color = Color.Red) }
+            },
+            title = { Text("ডেডলাইনের সময়", fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

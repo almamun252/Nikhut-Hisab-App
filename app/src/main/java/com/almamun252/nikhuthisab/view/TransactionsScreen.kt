@@ -1,10 +1,13 @@
 package com.almamun252.nikhuthisab.view
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,16 +21,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.CardGiftcard
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Computer
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.Handshake
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.LocalHospital
+import androidx.compose.material.icons.rounded.MoneyOff
 import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -188,138 +207,121 @@ fun TransactionsScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Search Bar and Download Button Row
+                // --- Top Bar: Search Bar on Left, Icons on Right ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Expanded Search Bar
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("লেনদেন খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
+                        placeholder = { Text("খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
                         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary) },
-                        modifier = Modifier.weight(1f),
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Color.Gray)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
                         singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, delayMillis = 300))
+                    // Icons Row (Category, Date, Download)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        WigglingDownloadIconButton(
-                            onClick = { showExportSheet = true }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Dropdown Filters Row (Category & Time)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Type Dropdown
-                    ExposedDropdownMenuBox(
-                        expanded = typeDropdownExpanded,
-                        onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            readOnly = true,
-                            value = typeOptions[selectedType] ?: "সব ধরন",
-                            onValueChange = { },
-                            leadingIcon = {
-                                Icon(Icons.Rounded.Category, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                            },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = Color.LightGray,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = typeDropdownExpanded,
-                            onDismissRequest = { typeDropdownExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            typeOptions.forEach { (key, label) ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = label,
-                                            fontWeight = if (selectedType == key) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (selectedType == key) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    onClick = {
-                                        selectedType = key
-                                        typeDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Month/Time Dropdown
-                    ExposedDropdownMenuBox(
-                        expanded = monthDropdownExpanded,
-                        onExpandedChange = { monthDropdownExpanded = !monthDropdownExpanded },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            readOnly = true,
-                            value = monthOptions[selectedMonth] ?: "সব সময়",
-                            onValueChange = { },
-                            leadingIcon = {
-                                Icon(Icons.Rounded.Schedule, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                            },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthDropdownExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = Color.LightGray,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = monthDropdownExpanded,
-                            onDismissRequest = { monthDropdownExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            monthOptions.forEach { (key, label) ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = label,
-                                            fontWeight = if (selectedMonth == key) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (selectedMonth == key) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    onClick = {
-                                        selectedMonth = key
-                                        monthDropdownExpanded = false
-                                        if (key == "Custom") {
-                                            showCustomDateDialog = true
+                        // Category/Type Dropdown Icon
+                        Box {
+                            val typeTint = if (selectedType == "All") MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
+                            TopBarIcon(
+                                icon = Icons.Rounded.Category,
+                                tint = typeTint,
+                                onClick = { typeDropdownExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = typeDropdownExpanded,
+                                onDismissRequest = { typeDropdownExpanded = false },
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .clip(RoundedCornerShape(12.dp))
+                            ) {
+                                typeOptions.forEach { (key, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                label,
+                                                fontWeight = if (selectedType == key) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (selectedType == key) MaterialTheme.colorScheme.primary else Color(0xFF1E293B)
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedType = key
+                                            typeDropdownExpanded = false
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
+
+                        // Date/Time Dropdown Icon
+                        Box {
+                            val dateTint = if (selectedMonth == "All Time") MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
+                            TopBarIcon(
+                                icon = Icons.Rounded.Schedule,
+                                tint = dateTint,
+                                onClick = { monthDropdownExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = monthDropdownExpanded,
+                                onDismissRequest = { monthDropdownExpanded = false },
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .clip(RoundedCornerShape(12.dp))
+                            ) {
+                                monthOptions.forEach { (key, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                label,
+                                                fontWeight = if (selectedMonth == key) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (selectedMonth == key) MaterialTheme.colorScheme.primary else Color(0xFF1E293B)
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedMonth = key
+                                            monthDropdownExpanded = false
+                                            if (key == "Custom") {
+                                                showCustomDateDialog = true
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Download Icon
+                        WigglingDownloadIconButton(onClick = { showExportSheet = true })
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- Dialogs for Custom Date ---
                 if (showCustomDateDialog) {
                     val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
                     val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
@@ -376,8 +378,6 @@ fun TransactionsScreen(
                     ) { DatePicker(state = datePickerState, title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
                 if (currentItems.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -389,7 +389,7 @@ fun TransactionsScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp), // কার্ডগুলোর মাঝের দূরত্ব কমানো হয়েছে (12dp থেকে 8dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 12.dp)
                     ) {
                         items(currentItems, key = { it.id }) { tx ->
@@ -669,6 +669,27 @@ fun TransactionsScreen(
 }
 
 // ----------------------------------------------------------------------
+// টপ বারের সাধারণ আইকনের জন্য কাস্টম কম্পোজেবল
+// ----------------------------------------------------------------------
+@Composable
+fun TopBarIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = 0.1f))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+    }
+}
+
+// ----------------------------------------------------------------------
 // নড়াচড়া করা (Wiggling) আকর্ষণীয় ডাউনলোড বাটন কম্পোজেবল
 // ----------------------------------------------------------------------
 @Composable
@@ -716,7 +737,7 @@ fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Uni
     IconButton(
         onClick = onClick,
         modifier = modifier
-            .size(44.dp)
+            .size(40.dp) // Size updated to match other icons perfectly
             .rotate(rotation)
             .scale(scale)
             .shadow(6.dp, CircleShape) // আকর্ষণীয় শ্যাডো
@@ -731,7 +752,7 @@ fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Uni
             imageVector = Icons.Rounded.Download,
             contentDescription = "ডাউনলোড রিপোর্ট",
             tint = Color.White,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp) // Icon size adjusted
         )
     }
 }
@@ -753,101 +774,155 @@ fun PdfOptionButton(text: String, isSelected: Boolean, color: Color, modifier: M
     }
 }
 
-// Transaction List Item
+// ----------------------------------------------------------------------
+// Transaction List Item (Idea 2 Design: Left Color Bar, Pill Badge)
+// Adjusted for a slimmer, more compact look
+// ----------------------------------------------------------------------
 @Composable
 private fun AllTransactionItemCard(
     transaction: Transaction,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    // দেনা-পাওনার কালার লজিক
-    val (themeColor, lightThemeColor, amountPrefix) = when (transaction.type) {
-        "Income" -> Triple(Color(0xFF4CAF50), Color(0xFFE8F5E9), "+")
-        "Expense" -> Triple(Color(0xFFF44336), Color(0xFFFFEBEE), "-")
-        "Borrowing" -> Triple(Color(0xFFF59E0B), Color(0xFFFEF3C7), "+") // হলুদ (Amber) এবং (+) সাইন
-        "Lending" -> Triple(Color(0xFF3B82F6), Color(0xFFEFF6FF), "-") // নীল (Blue) এবং (-) সাইন
-        else -> Triple(Color.Gray, Color(0xFFF1F5F9), "")
+    val (themeColor, amountPrefix) = when (transaction.type) {
+        "Income" -> Pair(Color(0xFF10B981), "+") // Emerald
+        "Expense" -> Pair(Color(0xFFF43F5E), "-") // Rose
+        "Borrowing" -> Pair(Color(0xFFF59E0B), "+") // Amber
+        "Lending" -> Pair(Color(0xFF3B82F6), "-") // Blue
+        else -> Pair(Color.Gray, "")
     }
 
-    val dateString = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD")).format(Date(transaction.date))
+    val dateString = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD")).format(Date(transaction.date))
 
-    // Card এর বদলে Box ব্যবহার করা হয়েছে গ্লো ইফেক্ট দেওয়ার জন্য
-    Box(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            // ট্রানজ্যাকশনের টাইপ অনুযায়ী ডায়নামিক গ্লোয়িং শ্যাডো
-            .drawBehind {
-                val shadowColor = themeColor.copy(alpha = 0.2f).toArgb() // গ্লো এর অপাসিটি কমানো হয়েছে যাতে হালকা লাগে
-
-                val paint = Paint().asFrameworkPaint().apply {
-                    this.color = android.graphics.Color.TRANSPARENT
-                    setShadowLayer(
-                        12f, // ব্লার রেডিয়াস
-                        0f,
-                        6f, // নিচের দিকে হালকা শ্যাডো
-                        shadowColor
-                    )
-                }
-
-                drawContext.canvas.nativeCanvas.drawRoundRect(
-                    0f,
-                    0f,
-                    size.width,
-                    size.height,
-                    12.dp.toPx(), // রাউন্ডেড কর্নার 16 থেকে 12 করা হয়েছে
-                    12.dp.toPx(),
-                    paint
-                )
-            }
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(12.dp)) // Reduced from 16dp
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), // Softer shadow
+        shape = RoundedCornerShape(12.dp) // Reduced from 16dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp), // আগের 16dp প্যাডিং কমিয়ে কার্ড স্লিম করা হয়েছে
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // ২. ক্যাটাগরি আইকন
             Box(
                 modifier = Modifier
-                    .size(40.dp) // আইকনের সাইজ 52dp থেকে কমিয়ে 40dp করা হয়েছে
-                    .clip(CircleShape)
-                    .background(lightThemeColor),
+                    .padding(start = 12.dp)
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(themeColor.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
+                Icon(
+                    imageVector = getCategoryIcon(transaction.category),
+                    contentDescription = null,
+                    tint = themeColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // ৩. কন্টেন্ট এরিয়া (Reduced Padding)
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 10.dp, vertical = 8.dp), // Even slimmer padding (12, 10 to 10, 8)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // টাইটেল এবং ক্যাটাগরি
+                    val titleText = transaction.title.trim()
+                    val categoryText = transaction.category.trim()
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (titleText.isNotBlank() && titleText != "-") titleText else categoryText,
+                            fontSize = 15.sp, // Reduced from 16.sp
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E293B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        if (titleText.isNotBlank() && titleText != "-" && titleText != categoryText) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFCBD5E1))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = categoryText,
+                                fontSize = 12.sp, // Reduced from 13.sp
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // পিল ব্যাজ (Separated Icon and Text like the screenshot)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // ক্যালেন্ডার আইকন বক্স
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(themeColor)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CalendarToday,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // ডেট এবং টাইম বক্স
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(themeColor)
+                                .padding(horizontal = 6.dp, vertical = 0.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dateString,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(6.dp)) // Reduced gap
+
+                // ৪. ডানদিকের টাকার অংক
                 Text(
-                    text = transaction.category.take(1).uppercase(),
+                    text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                    fontSize = 15.sp, // Reduced from 18.sp
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp, // ফন্ট সাইজ 20sp থেকে কমানো হয়েছে
                     color = themeColor
                 )
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = transaction.title,
-                    fontSize = 14.sp, // 16sp থেকে কমানো হয়েছে
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(2.dp)) // মাঝের গ্যাপ কমানো হয়েছে
-                Text(
-                    text = "${transaction.category} • $dateString",
-                    fontSize = 11.sp, // 13sp থেকে কমানো হয়েছে
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Text(
-                text = "$amountPrefix ৳${transaction.amount.toInt()}",
-                fontSize = 15.sp, // 18sp থেকে কমিয়ে 15sp করা হয়েছে
-                fontWeight = FontWeight.ExtraBold,
-                color = themeColor
-            )
         }
     }
 }
@@ -886,11 +961,11 @@ private fun AllTransactionDetailsSheet(
                 .background(lightThemeColor),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = transaction.category.take(1).uppercase(),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 32.sp,
-                color = themeColor
+            Icon(
+                imageVector = getCategoryIcon(transaction.category),
+                contentDescription = null,
+                tint = themeColor,
+                modifier = Modifier.size(36.dp)
             )
         }
 
@@ -981,5 +1056,28 @@ private fun AllTxDetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector
             Text(text = label, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
             Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
+    }
+}
+
+// ----------------------------------------------------------------------
+// ক্যাটাগরি অনুযায়ী অটোমেটিক আইকন নির্ধারণের ফাংশন
+// ----------------------------------------------------------------------
+@Composable
+fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (category) {
+        "খাবার" -> Icons.Rounded.Restaurant
+        "যাতায়াত" -> Icons.Rounded.DirectionsCar
+        "বাসা ভাড়া" -> Icons.Rounded.Home
+        "শপিং" -> Icons.Rounded.ShoppingCart
+        "বিল" -> Icons.Rounded.Receipt
+        "চিকিৎসা" -> Icons.Rounded.LocalHospital
+        "শিক্ষা" -> Icons.Rounded.School
+        "বেতন" -> Icons.Rounded.AccountBalanceWallet
+        "ফ্রিল্যান্সিং" -> Icons.Rounded.Computer
+        "উপহার" -> Icons.Rounded.CardGiftcard
+        "ব্যবসা" -> Icons.Rounded.Store
+        "ধার দিয়েছি", "পাওনা" -> Icons.Rounded.Handshake
+        "ধার নিয়েছি", "দেনা" -> Icons.Rounded.MoneyOff
+        else -> Icons.Rounded.Category
     }
 }
