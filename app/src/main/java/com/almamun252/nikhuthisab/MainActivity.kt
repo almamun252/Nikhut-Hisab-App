@@ -37,18 +37,23 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // একটি টপ-লেভেল নেভিগেশন কন্ট্রোলার তৈরি করা হলো
-                    val navController = rememberNavController()
+                    val topLevelNavController = rememberNavController()
 
-                    NavHost(navController = navController, startDestination = startDestination) {
+                    NavHost(navController = topLevelNavController, startDestination = startDestination) {
 
                         // লগইন স্ক্রিন
                         composable("login") {
-                            LoginScreen(navController = navController)
+                            LoginScreen(navController = topLevelNavController)
                         }
 
                         // মেইন স্ক্রিন (যেখানে আপনার হোম এবং বটম নেভিগেশন আছে)
                         composable("main") {
-                            MainScreen()
+                            // MainScreen নিজের ভেতরের নেভিগেশন নিজেই ম্যানেজ করবে
+                            MainScreen(onLogout = {
+                                topLevelNavController.navigate("login") {
+                                    popUpTo("main") { inclusive = true }
+                                }
+                            })
                         }
                     }
                 }
