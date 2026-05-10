@@ -1,0 +1,400 @@
+package com.almamun252.nikhuthisab.view
+
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.model.Budget
+import com.almamun252.nikhuthisab.viewmodel.BudgetViewModel
+import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BudgetScreen(
+    navController: NavController,
+    budgetViewModel: BudgetViewModel = viewModel(),
+    transactionViewModel: TransactionViewModel = viewModel() // খরচের হিসাব আনার জন্য
+) {
+    val context = LocalContext.current
+
+    // বর্তমান মাস বের করা (যেমন: "05-2026")
+    val cal = Calendar.getInstance()
+    val currentMonthStr = SimpleDateFormat("MM-yyyy", Locale.US).format(cal.time)
+    val displayMonthStr = SimpleDateFormat("MMMM yyyy", Locale("bn", "BD")).format(cal.time)
+
+    // ডাটাবেস থেকে ডেটা আনা
+    val budgets by budgetViewModel.getBudgetsForMonth(currentMonthStr).collectAsState(initial = emptyList())
+    val allTransactions by transactionViewModel.allTransactions.collectAsState()
+
+    // এই মাসের সবগুলো খরচ ফিল্টার করা
+    val thisMonthExpenses = remember(allTransactions) {
+        allTransactions.filter { tx ->
+            tx.type == "Expense" &&
+                    SimpleDateFormat("MM-yyyy", Locale.US).format(Date(tx.date)) == currentMonthStr
+        }
+    }
+
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { isVisible = true }
+
+    // Dialog States
+    var showAddBudgetDialog by remember { mutableStateOf(false) }
+    var selectedBudgetToEdit by remember { mutableStateOf<Budget?>(null) }
+
+    // Form States
+    var amountInput by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("") }
+    var categoryExpanded by remember { mutableStateOf(false) }
+
+    val availableCategories = listOf("খাবার", "যাতায়াত", "বাসা ভাড়া", "শপিং", "বিল", "চিকিৎসা", "শিক্ষা", "অন্যান্য")
+
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC),
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(tween(600, delayMillis = 300)) { 150 } + fadeIn(tween(600)),
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        selectedBudgetToEdit = null
+                        amountInput = ""
+                        selectedCategory = ""
+                        showAddBudgetDialog = true
+                    },
+                    modifier = Modifier.padding(bottom = 90.dp),
+                    containerColor = Color(0xFF4F46E5), // Indigo Theme
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("নতুন বাজেট", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // --- Header ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(top = 16.dp, bottom = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .clickable { navController.popBackStack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color(0xFF334155))
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text("মাসিক বাজেট", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                        Text(displayMonthStr, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+
+            // --- List View ---
+            if (budgets.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().padding(bottom = 80.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier.size(100.dp).clip(CircleShape).background(Color(0xFF4F46E5).copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Rounded.Category, contentDescription = null, tint = Color(0xFF4F46E5).copy(alpha = 0.6f), modifier = Modifier.size(50.dp))
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text("এই মাসে কোনো বাজেট নেই!", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("খরচ নিয়ন্ত্রণে রাখতে বাজেট সেট করুন", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                    contentPadding = PaddingValues(top = 20.dp, bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(budgets, key = { it.id }) { budget ->
+                        // এই ক্যাটাগরিতে এই মাসে কত খরচ হয়েছে তা বের করা
+                        val spentAmount = thisMonthExpenses
+                            .filter { it.category == budget.category }
+                            .sumOf { it.amount }
+
+                        BudgetProgressCard(
+                            budget = budget,
+                            spentAmount = spentAmount,
+                            onEditClick = {
+                                selectedBudgetToEdit = budget
+                                amountInput = if (budget.limitAmount % 1.0 == 0.0) budget.limitAmount.toInt().toString() else budget.limitAmount.toString()
+                                selectedCategory = budget.category
+                                showAddBudgetDialog = true
+                            },
+                            onDeleteClick = {
+                                budgetViewModel.deleteBudget(budget.id)
+                                Toast.makeText(context, "বাজেট মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Add/Edit Budget Dialog ---
+    if (showAddBudgetDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddBudgetDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = if (selectedBudgetToEdit == null) "নতুন বাজেট সেট করুন" else "বাজেট আপডেট করুন",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Category Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = !categoryExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedCategory,
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("ক্যাটাগরি নির্বাচন করুন") },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            shape = RoundedCornerShape(12.dp),
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF4F46E5))
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            availableCategories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat) },
+                                    onClick = {
+                                        selectedCategory = cat
+                                        categoryExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Amount Input
+                    OutlinedTextField(
+                        value = amountInput,
+                        onValueChange = { amountInput = it },
+                        label = { Text("বাজেটের পরিমাণ") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = Color(0xFF4F46E5), modifier = Modifier.padding(start = 12.dp)) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF4F46E5))
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amount = amountInput.toDoubleOrNull()
+                        if (amount != null && amount > 0 && selectedCategory.isNotEmpty()) {
+                            // চেক করা যে এই ক্যাটাগরিতে অলরেডি বাজেট আছে কি না
+                            val exists = budgets.find { it.category == selectedCategory }
+                            if (exists != null && selectedBudgetToEdit == null) {
+                                Toast.makeText(context, "এই ক্যাটাগরিতে আগে থেকেই বাজেট আছে!", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            val newBudget = Budget(
+                                id = selectedBudgetToEdit?.id ?: 0,
+                                category = selectedCategory,
+                                limitAmount = amount,
+                                monthYear = currentMonthStr
+                            )
+                            budgetViewModel.insertBudget(newBudget)
+                            showAddBudgetDialog = false
+                            Toast.makeText(context, "বাজেট সেভ হয়েছে", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "সঠিক তথ্য দিন!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("সেভ করুন", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddBudgetDialog = false }) {
+                    Text("বাতিল", color = Color.Gray)
+                }
+            }
+        )
+    }
+}
+
+// --- Traffic Light Progress Card ---
+@Composable
+fun BudgetProgressCard(
+    budget: Budget,
+    spentAmount: Double,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    // Traffic Light Logic 🚦
+    val progressRatio = if (budget.limitAmount > 0) (spentAmount / budget.limitAmount).toFloat() else 0f
+    val safeRatio = progressRatio.coerceIn(0f, 1f) // 1 এর বেশি যেন না যায় প্রগ্রেস বারের জন্য
+
+    // কালার ডিসিশন
+    val (progressColor, lightColor, statusText) = when {
+        progressRatio >= 0.8f -> Triple(Color(0xFFF43F5E), Color(0xFFFFF1F2), "সতর্কতা! বাজেট প্রায় শেষ") // লাল (৮০% এর ওপর)
+        progressRatio >= 0.5f -> Triple(Color(0xFFF59E0B), Color(0xFFFFFBEB), "সাবধানে খরচ করুন") // হলুদ (৫০% থেকে ৮০%)
+        else -> Triple(Color(0xFF10B981), Color(0xFFECFDF5), "বাজেট নিরাপদ আছে") // সবুজ (০% থেকে ৫০%)
+    }
+
+    val animProgress by animateFloatAsState(targetValue = safeRatio, animationSpec = tween(1200), label = "progress")
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = progressColor.copy(alpha = 0.3f))
+            .clip(RoundedCornerShape(20.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+
+            // Top Header: Icon, Category & Actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(lightColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(getCategoryIcon(budget.category), contentDescription = null, tint = progressColor, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(budget.category, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                        Text(statusText, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = progressColor)
+                    }
+                }
+
+                // Edit & Delete Menu
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Rounded.Warning, contentDescription = "Options", tint = Color.Gray) // Threedots এর বদলে warning দিলাম আপাতত
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Color.White).clip(RoundedCornerShape(12.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Row{ Icon(Icons.Filled.Edit, null, tint=Color.Gray, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("এডিট করুন") } },
+                            onClick = { expanded = false; onEditClick() }
+                        )
+                        DropdownMenuItem(
+                            text = { Row{ Icon(Icons.Filled.Delete, null, tint=Color.Red, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("মুছে ফেলুন", color=Color.Red) } },
+                            onClick = { expanded = false; onDeleteClick() }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Amount Details
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("খরচ হয়েছে: ৳${spentAmount.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                Text("বাজেট: ৳${budget.limitAmount.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // The Traffic Light Progress Bar
+            LinearProgressIndicator(
+                progress = { animProgress },
+                modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)),
+                color = progressColor,
+                trackColor = Color(0xFFF1F5F9),
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Remaining Amount or Over Budget alert
+            val remaining = budget.limitAmount - spentAmount
+            if (remaining < 0) {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFF1F2)).padding(8.dp), contentAlignment = Alignment.Center) {
+                    Text("বাজেট থেকে ৳${Math.abs(remaining).toInt()} বেশি খরচ হয়েছে!", color = Color(0xFFF43F5E), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            } else {
+                Text("বাকি আছে: ৳${remaining.toInt()}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF10B981))
+            }
+        }
+    }
+}

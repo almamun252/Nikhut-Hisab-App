@@ -1095,7 +1095,10 @@ fun QuickShortcutsSection(navController: NavController) {
         GridShortcut("আয় যোগ", Icons.Rounded.Add, Color(0xFF10B981), "add_income"),
         GridShortcut("ব্যয় যোগ", Icons.Rounded.Add, Color(0xFFF43F5E), "add_expense"),
         GridShortcut("আয়-ব্যয়", Icons.Rounded.AccountBalanceWallet, Color(0xFF3B82F6), "income_expense"),
-        GridShortcut("দেনা-পাওনা", Icons.Rounded.Handshake, Color(0xFF9C27B0), "debt_credit")
+        GridShortcut("দেনা-পাওনা", Icons.Rounded.Handshake, Color(0xFF9C27B0), "debt_credit"),
+        GridShortcut("বাজেট", Icons.Rounded.PieChart, Color(0xFFF59E0B), "budget_screen"),
+        GridShortcut("রাফ খাতা", Icons.Rounded.Draw, Color(0xFF8B5CF6), "rough_khata"),
+        GridShortcut("বাজারের ফর্দ", Icons.Rounded.ShoppingCart, Color(0xFF0D9488), "shopping_list") // <-- এই নতুন লাইনটি যোগ হলো
     )
 
     val columns = 4

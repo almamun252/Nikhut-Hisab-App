@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,18 +51,23 @@ import java.util.Locale
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Dashboard : BottomNavItem("dashboard", "হোম", Icons.Rounded.Home)
     object Transactions : BottomNavItem("transactions", "লেনদেন", Icons.Rounded.ReceiptLong)
+    object ShoppingList : BottomNavItem("shopping_list", "ফর্দ", Icons.Rounded.ShoppingCart) // <-- নতুন বটম আইটেম
     object Profile : BottomNavItem("profile", "প্রোফাইল", Icons.Rounded.Person)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
+fun MainScreen(
+    viewModel: TransactionViewModel = viewModel(),
+    onLogout: () -> Unit = {}
+) {
     val navController = rememberNavController()
 
-    // বটম ন্যাভিগেশনে ৩টি আইটেম
+    // বটম ন্যাভিগেশনে এখন ৪টি আইটেম
     val items = listOf(
         BottomNavItem.Dashboard,
         BottomNavItem.Transactions,
+        BottomNavItem.ShoppingList, // <-- ফর্দ যোগ করা হয়েছে
         BottomNavItem.Profile
     )
 
@@ -72,10 +78,10 @@ fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
     val isMainScreen = currentRoute in items.map { it.route } || currentRoute == null
 
     // --- নতুন টপ বারের স্টেট ---
-    var isDarkMode by remember { mutableStateOf(false) } // থিম টগল করার স্টেট (এটি গ্লোবাল স্টেটে কানেক্ট করতে হবে)
-    var showNotificationSheet by remember { mutableStateOf(false) } // নোটিফিকেশন শিট দেখানোর স্টেট
+    var isDarkMode by remember { mutableStateOf(false) }
+    var showNotificationSheet by remember { mutableStateOf(false) }
 
-    // ভিউমডেল থেকে আসল নোটিফিকেশনের ডেটা পড়া হচ্ছে
+    // ভিউমডেল থেকে আসল নোটিফিকেশনের ডেটা পড়া হচ্ছে
     val upcomingReminders by viewModel.upcomingReminders.collectAsState()
 
     Scaffold(
@@ -106,6 +112,7 @@ fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
                             BottomNavItem.Dashboard.route -> "ড্যাশবোর্ড"
                             "income_expense" -> "আয় ও ব্যয় খাতা"
                             BottomNavItem.Transactions.route -> "সকল লেনদেন"
+                            BottomNavItem.ShoppingList.route -> "বাজারের ফর্দ" // <-- টাইটেল যুক্ত করা হয়েছে
                             BottomNavItem.Profile.route -> "প্রোফাইল"
                             else -> "ড্যাশবোর্ড"
                         }
@@ -149,7 +156,7 @@ fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
                                     modifier = Modifier.size(20.dp)
                                 )
 
-                                // আনরিড নোটিফিকেশন লাল ডট (যদি রিমাইন্ডার লিস্ট খালি না হয়)
+                                // আনরিড নোটিফিকেশন লাল ডট (যদি রিমাইন্ডার লিস্ট খালি না হয়)
                                 if (upcomingReminders.isNotEmpty()) {
                                     Box(
                                         modifier = Modifier
@@ -181,8 +188,7 @@ fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // নেভিগেশন বারের প্যাডিং Surface এর ভেতরে দেওয়া হলো,
-                            // ফলে সাদা রংটি একদম নিচ পর্যন্ত যাবে এবং আইকনগুলো উপরে থাকবে
+                            // নেভিগেশন বারের প্যাডিং Surface এর ভেতরে দেওয়া হলো
                             .navigationBarsPadding()
                             .padding(top = 6.dp, bottom = 6.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
@@ -232,14 +238,27 @@ fun MainScreen(viewModel: TransactionViewModel = viewModel()) {
                 composable(BottomNavItem.Transactions.route) {
                     TransactionsScreen(navController = navController)
                 }
+                composable(BottomNavItem.ShoppingList.route) {
+                    ShoppingListScreen(navController = navController) // <-- নতুন রাউট বটম বারের জন্য
+                }
+                composable(BottomNavItem.Profile.route) {
+                    ProfileScreen(navController = navController, onLogout = onLogout)
+                }
                 composable("income_expense") {
                     IncomeExpenseScreen(navController = navController)
                 }
-                composable(BottomNavItem.Profile.route) {
-                    ProfileScreen(navController = navController)
-                }
                 composable("debt_credit") {
                     DebtCreditScreen(navController = navController)
+                }
+                composable("budget_screen") {
+                    BudgetScreen(navController = navController)
+                }
+                composable("rough_khata") {
+                    RoughKhataScreen(navController = navController)
+                }
+                // হোম স্ক্রিনের শর্টকাট থেকে আসার জন্য ডুপ্লিকেট রাউট (বিকল্প হিসেবে)
+                composable("shopping_list") {
+                    ShoppingListScreen(navController = navController)
                 }
                 composable(
                     route = "add_expense?transactionId={transactionId}",

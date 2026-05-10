@@ -22,7 +22,10 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(
+    navController: NavController,
+    onLogout: () -> Unit = {} // <-- ১. এই প্যারামিটারটি যোগ করা হয়েছে
+) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
 
@@ -131,9 +134,7 @@ fun ProfileScreen(navController: NavController) {
         Button(
             onClick = {
                 auth.signOut()
-                navController.navigate("login") {
-                    popUpTo("main") { inclusive = true }
-                }
+                onLogout() // <-- ২. এখানে নেভিগেশন ডিলিট করে শুধু onLogout() কল করা হয়েছে
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
