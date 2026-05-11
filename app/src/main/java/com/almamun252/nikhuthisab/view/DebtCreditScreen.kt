@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
@@ -60,9 +62,16 @@ fun DebtCreditScreen(
     // Tab State: 0 = Receivable (পাবো/পাওনা), 1 = Payable (দিবো/দেনা)
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
+    // --- Dynamic Filter Strings ---
+    val filterAllTime = stringResource(R.string.filter_all_time)
+    val filterThisMonth = stringResource(R.string.filter_this_month)
+    val filterLastMonth = stringResource(R.string.filter_last_month)
+    val filterLast6Months = stringResource(R.string.filter_last_6_months)
+    val filterCustomRange = stringResource(R.string.filter_custom_range)
+
     // --- Search & Filter States ---
     var searchQuery by remember { mutableStateOf("") }
-    var selectedDateFilter by remember { mutableStateOf("সব সময়") }
+    var selectedDateFilter by remember { mutableStateOf(filterAllTime) }
 
     var showCustomDateDialog by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -85,18 +94,18 @@ fun DebtCreditScreen(
         val currYear = currentCal.get(Calendar.YEAR)
 
         val dateMatch = when (selectedDateFilter) {
-            "সব সময়" -> true
-            "চলতি মাস" -> txMonth == currMonth && txYear == currYear
-            "গত মাস" -> {
+            filterAllTime -> true
+            filterThisMonth -> txMonth == currMonth && txYear == currYear
+            filterLastMonth -> {
                 val lastMonth = if (currMonth == 0) 11 else currMonth - 1
                 val lastMonthYear = if (currMonth == 0) currYear - 1 else currYear
                 txMonth == lastMonth && txYear == lastMonthYear
             }
-            "গত ৬ মাস" -> {
+            filterLast6Months -> {
                 val sixMonthsAgo = Calendar.getInstance().apply { add(Calendar.MONTH, -6) }.timeInMillis
                 tx.date >= sixMonthsAgo
             }
-            "কাস্টম রেঞ্জ" -> {
+            filterCustomRange -> {
                 val start = customStartDate ?: 0L
                 val end = customEndDate?.let { it + 86400000L - 1L } ?: Long.MAX_VALUE
                 tx.date in start..end
@@ -113,10 +122,12 @@ fun DebtCreditScreen(
     val totalPayable = borrowings.sumOf { it.amount - it.settledAmount }.toFloat()
 
     val currentList = if (selectedTabIndex == 0) lendings else borrowings
+    val currentTotal = if (selectedTabIndex == 0) totalReceivable else totalPayable
 
     // Modern Premium Colors
     val themeColor = if (selectedTabIndex == 0) Color(0xFF10B981) else Color(0xFFF43F5E) // Emerald (পাওনা) vs Rose (দেনা)
     val lightThemeColor = if (selectedTabIndex == 0) Color(0xFFD1FAE5) else Color(0xFFFEE2E2)
+    val darkThemeColor = if (selectedTabIndex == 0) Color(0xFF047857) else Color(0xFFBE123C)
     val bgColor = Color(0xFFF8FAFC) // Very Light Slate Background
 
     // Bottom Sheet States
@@ -140,7 +151,7 @@ fun DebtCreditScreen(
                             val type = if (selectedTabIndex == 0) "Lending" else "Borrowing"
                             navController.navigate("add_debt_credit?type=$type&transactionId=-1")
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Routing Error", Toast.LENGTH_SHORT).show()
+                            // Ignore silently or log it
                         }
                     },
                     modifier = Modifier.padding(bottom = 90.dp),
@@ -151,7 +162,11 @@ fun DebtCreditScreen(
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Add")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedTabIndex == 0) "নতুন পাওনা" else "নতুন দেনা", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (selectedTabIndex == 0) stringResource(R.string.btn_new_receivable) else stringResource(R.string.btn_new_payable),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
             }
         }
@@ -180,11 +195,11 @@ fun DebtCreditScreen(
                             .clickable { navController.popBackStack() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color(0xFF334155))
+                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = stringResource(R.string.desc_back), tint = Color(0xFF334155))
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
-                        text = "দেনা-পাওনা খাতা",
+                        text = stringResource(R.string.title_debt_credit_ledger),
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E293B)
@@ -200,61 +215,101 @@ fun DebtCreditScreen(
             ) {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Minimalist Tab Switcher with Glowing Effect
+                    // Row 1: Modern Search Bar & Date Filter Side-by-Side
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Search Bar
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text(if (selectedTabIndex == 0) stringResource(R.string.hint_search_receivable) else stringResource(R.string.hint_search_payable), color = Color.Gray, fontSize = 14.sp) },
+                            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = themeColor) },
+                            modifier = Modifier.weight(1f).height(52.dp), // Compact height
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            ),
+                            singleLine = true
+                        )
+
+                        // Date Filter Dropdown
+                        SharedDateRangeFilter(
+                            selectedOption = selectedDateFilter,
+                            themeColor = themeColor,
+                            modifier = Modifier.width(135.dp),
+                            onOptionSelected = { option ->
+                                if (option == filterCustomRange) {
+                                    showCustomDateDialog = true
+                                } else {
+                                    selectedDateFilter = option
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 2: Total Summary Card with built-in Compact Toggle
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(
                                 elevation = 16.dp, // Glowing effect
                                 shape = RoundedCornerShape(20.dp),
-                                spotColor = themeColor.copy(alpha = 0.5f),
-                                ambientColor = themeColor.copy(alpha = 0.3f)
+                                spotColor = themeColor.copy(alpha = 0.7f),
+                                ambientColor = themeColor.copy(alpha = 0.4f)
                             )
                     ) {
-                        CustomMinimalTab(
-                            selectedIndex = selectedTabIndex,
-                            onTabSelected = { selectedTabIndex = it },
-                            receivableAmount = totalReceivable,
-                            payableAmount = totalPayable,
-                            themeColor = themeColor
-                        )
-                    }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = lightThemeColor),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.Start
+                                ) {
+                                    Text(
+                                        text = if (selectedTabIndex == 0) stringResource(R.string.label_total_receivable) else stringResource(R.string.label_total_payable),
+                                        color = darkThemeColor.copy(alpha = 0.8f),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "৳ ${currentTotal.toInt()}",
+                                        color = darkThemeColor,
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Date Filter Dropdown
-                    SharedDateRangeFilter(
-                        selectedOption = selectedDateFilter,
-                        themeColor = themeColor,
-                        onOptionSelected = { option ->
-                            if (option == "কাস্টম রেঞ্জ") {
-                                showCustomDateDialog = true
-                            } else {
-                                selectedDateFilter = option
+                                // Compact Toggle (পাবো / দিবো)
+                                DebtCreditCompactToggle(
+                                    selectedIndex = selectedTabIndex,
+                                    onTabSelected = { selectedTabIndex = it },
+                                    themeColor = themeColor
+                                )
                             }
                         }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Modern Search Bar
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text(if (selectedTabIndex == 0) "পাওনা খুঁজুন..." else "দেনা খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
-                        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = themeColor) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp), // Compact height
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = themeColor,
-                            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        singleLine = true
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -283,12 +338,12 @@ fun DebtCreditScreen(
                                     }
                                     Spacer(modifier = Modifier.height(20.dp))
                                     Text(
-                                        text = if (selectedTabIndex == 0) "কাউকে এখনো টাকা দেননি!" else "কারো কাছ থেকে টাকা নেননি!",
+                                        text = if (selectedTabIndex == 0) stringResource(R.string.msg_no_receivable) else stringResource(R.string.msg_no_payable),
                                         fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "নতুন হিসাব যোগ করতে নিচের বাটনে ক্লিক করুন",
+                                        text = stringResource(R.string.msg_click_bottom_button_to_add),
                                         fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center
                                     )
                                 }
@@ -344,7 +399,7 @@ fun DebtCreditScreen(
                 if (isSettled) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF10B981).copy(alpha = 0.15f)).padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        Text("সম্পূর্ণ পরিশোধিত ✅", color = Color(0xFF10B981), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                        Text(stringResource(R.string.status_fully_settled), color = Color(0xFF10B981), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                     }
                 }
 
@@ -352,20 +407,20 @@ fun DebtCreditScreen(
                 HorizontalDivider(color = Color(0xFFF1F5F9))
                 Spacer(modifier = Modifier.height(24.dp))
 
-                val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
-                val dueSdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
+                val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale.getDefault())
+                val dueSdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    DetailRow(icon = Icons.Rounded.AccountBalanceWallet, label = "মোট পরিমাণ", value = "৳${tx.amount.toInt()}", color = themeColor)
-                    DetailRow(icon = Icons.Rounded.CheckCircle, label = "পরিশোধ হয়েছে", value = "৳${tx.settledAmount.toInt()}", color = Color(0xFF10B981))
-                    DetailRow(icon = Icons.Rounded.Pending, label = "বাকি আছে", value = "৳${(tx.amount - tx.settledAmount).toInt()}", color = if (isSettled) Color.Gray else themeColor)
-                    DetailRow(icon = Icons.Rounded.CalendarToday, label = "প্রদানের তারিখ ও সময়", value = sdf.format(Date(tx.date)), color = Color.Gray)
+                    DetailRow(icon = Icons.Rounded.AccountBalanceWallet, label = stringResource(R.string.label_total_amount), value = "৳${tx.amount.toInt()}", color = themeColor)
+                    DetailRow(icon = Icons.Rounded.CheckCircle, label = stringResource(R.string.label_settled_amount), value = "৳${tx.settledAmount.toInt()}", color = Color(0xFF10B981))
+                    DetailRow(icon = Icons.Rounded.Pending, label = stringResource(R.string.label_remaining_amount), value = "৳${(tx.amount - tx.settledAmount).toInt()}", color = if (isSettled) Color.Gray else themeColor)
+                    DetailRow(icon = Icons.Rounded.CalendarToday, label = stringResource(R.string.label_date_time_given), value = sdf.format(Date(tx.date)), color = Color.Gray)
                     if (tx.dueDate != null) {
                         val isOverdue = tx.dueDate < System.currentTimeMillis() && !isSettled
-                        DetailRow(icon = Icons.Rounded.EventBusy, label = "ডেডলাইন", value = dueSdf.format(Date(tx.dueDate)), color = if (isOverdue) Color.Red else Color.Gray)
+                        DetailRow(icon = Icons.Rounded.EventBusy, label = stringResource(R.string.label_deadline), value = dueSdf.format(Date(tx.dueDate)), color = if (isOverdue) Color.Red else Color.Gray)
                     }
                     if (!tx.note.isNullOrBlank()) {
-                        DetailRow(icon = Icons.Rounded.Subject, label = "নোট", value = tx.note, color = Color.Gray)
+                        DetailRow(icon = Icons.Rounded.Subject, label = stringResource(R.string.label_note), value = tx.note, color = Color.Gray)
                     }
                 }
 
@@ -384,7 +439,7 @@ fun DebtCreditScreen(
                     ) {
                         Icon(Icons.Rounded.Payments, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (selectedTabIndex == 0) "টাকা পেয়েছি (Add Payment)" else "টাকা দিয়েছি (Add Payment)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(if (selectedTabIndex == 0) stringResource(R.string.btn_receive_payment) else stringResource(R.string.btn_give_payment), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -397,7 +452,7 @@ fun DebtCreditScreen(
                             try {
                                 navController.navigate("add_debt_credit?type=${tx.type}&transactionId=$id")
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Routing Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, context.getString(R.string.msg_routing_error), Toast.LENGTH_LONG).show()
                             }
                         },
                         modifier = Modifier.weight(1f).height(50.dp),
@@ -406,7 +461,7 @@ fun DebtCreditScreen(
                     ) {
                         Icon(Icons.Filled.Edit, contentDescription = "Edit", tint = Color(0xFF64748B))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("এডিট", fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.btn_edit), fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                     }
                     OutlinedButton(
                         onClick = { showDeleteDialog = true },
@@ -417,7 +472,7 @@ fun DebtCreditScreen(
                     ) {
                         Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color(0xFFF43F5E))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ডিলিট", fontWeight = FontWeight.Bold, color = Color(0xFFF43F5E))
+                        Text(stringResource(R.string.btn_delete), fontWeight = FontWeight.Bold, color = Color(0xFFF43F5E))
                     }
                 }
             }
@@ -427,25 +482,25 @@ fun DebtCreditScreen(
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
                     containerColor = Color.White,
-                    title = { Text("হিসাব মুছে ফেলবেন?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
-                    text = { Text("আপনি কি নিশ্চিত যে এই হিসাবটি মুছে ফেলতে চান? মুছে ফেললে এটি আর ফিরে পাওয়া যাবে না।") },
+                    title = { Text(stringResource(R.string.title_delete_transaction), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
+                    text = { Text(stringResource(R.string.msg_confirm_delete_transaction)) },
                     confirmButton = {
                         Button(
                             onClick = {
                                 viewModel.deleteTransaction(tx)
                                 showDeleteDialog = false
                                 selectedTransaction = null
-                                Toast.makeText(context, "মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_deleted_successfully), Toast.LENGTH_SHORT).show()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("হ্যাঁ, মুছে ফেলুন", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.btn_yes_delete), fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("বাতিল", color = Color.Gray, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.btn_cancel), color = Color.Gray, fontWeight = FontWeight.Bold)
                         }
                     }
                 )
@@ -461,14 +516,14 @@ fun DebtCreditScreen(
         AlertDialog(
             onDismissRequest = { showPaymentDialog = null },
             containerColor = Color.White,
-            title = { Text("পরিশোধ আপডেট করুন", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
+            title = { Text(stringResource(R.string.title_update_payment), fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
             text = {
                 Column {
-                    Text("বাকি আছে: ৳${remaining.toInt()}", fontSize = 14.sp, color = Color(0xFF64748B), modifier = Modifier.padding(bottom = 16.dp))
+                    Text(stringResource(R.string.label_remaining_amount_with_value, remaining.toInt()), fontSize = 14.sp, color = Color(0xFF64748B), modifier = Modifier.padding(bottom = 16.dp))
                     OutlinedTextField(
                         value = paymentAmountInput,
                         onValueChange = { paymentAmountInput = it },
-                        label = { Text("কত টাকা?") },
+                        label = { Text(stringResource(R.string.hint_how_much)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -486,21 +541,21 @@ fun DebtCreditScreen(
                             val updatedTx = tx.copy(settledAmount = tx.settledAmount + input)
                             viewModel.deleteTransaction(tx)
                             viewModel.insertTransaction(updatedTx)
-                            Toast.makeText(context, "সফলভাবে যোগ হয়েছে!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_added_successfully), Toast.LENGTH_SHORT).show()
                             showPaymentDialog = null
                         } else {
-                            Toast.makeText(context, "সঠিক পরিমাণ দিন!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_enter_valid_amount), Toast.LENGTH_SHORT).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPaymentDialog = null }) {
-                    Text("বাতিল", color = Color(0xFF64748B))
+                    Text(stringResource(R.string.btn_cancel), color = Color(0xFF64748B))
                 }
             }
         )
@@ -508,14 +563,14 @@ fun DebtCreditScreen(
 
     // --- Custom Date Range Dialog ---
     if (showCustomDateDialog) {
-        val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
-        val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
-        val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+        val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
+        val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_start_date)
+        val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_end_date)
 
         AlertDialog(
             onDismissRequest = { showCustomDateDialog = false },
             containerColor = Color.White,
-            title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
+            title = { Text(stringResource(R.string.title_select_date), fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     OutlinedButton(
@@ -543,9 +598,9 @@ fun DebtCreditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showCustomDateDialog = false
-                    selectedDateFilter = "কাস্টম রেঞ্জ"
+                    selectedDateFilter = context.getString(R.string.filter_custom_range)
                 }) {
-                    Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold, color = themeColor)
+                    Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold, color = themeColor)
                 }
             },
             dismissButton = {
@@ -554,7 +609,7 @@ fun DebtCreditScreen(
                     customStartDate = null
                     customEndDate = null
                 }) {
-                    Text("বাতিল", color = Color.Gray)
+                    Text(stringResource(R.string.btn_cancel), color = Color.Gray)
                 }
             }
         )
@@ -569,10 +624,10 @@ fun DebtCreditScreen(
                 TextButton(onClick = {
                     customStartDate = datePickerState.selectedDateMillis
                     showStartDatePicker = false
-                }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold, color = themeColor) }
+                }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold, color = themeColor) }
             },
-            dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল", color = Color.Gray) } }
-        ) { DatePicker(state = datePickerState) }
+            dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) } }
+        ) { DatePicker(state = datePickerState, title = { Text(stringResource(R.string.title_start_date), modifier = Modifier.padding(16.dp)) }) }
     }
 
     if (showEndDatePicker) {
@@ -583,42 +638,83 @@ fun DebtCreditScreen(
                 TextButton(onClick = {
                     customEndDate = datePickerState.selectedDateMillis
                     showEndDatePicker = false
-                }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold, color = themeColor) }
+                }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold, color = themeColor) }
             },
-            dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল", color = Color.Gray) } }
-        ) { DatePicker(state = datePickerState) }
+            dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) } }
+        ) { DatePicker(state = datePickerState, title = { Text(stringResource(R.string.title_end_date), modifier = Modifier.padding(16.dp)) }) }
+    }
+}
+
+// --- Compact Toggle for Inside Card ---
+@Composable
+fun DebtCreditCompactToggle(selectedIndex: Int, onTabSelected: (Int) -> Unit, themeColor: Color) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.5f))
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val titles = listOf(stringResource(R.string.tab_receivable), stringResource(R.string.tab_payable))
+        titles.forEachIndexed { index, title ->
+            val isSelected = selectedIndex == index
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isSelected) themeColor else Color.Transparent)
+                    .clickable { onTabSelected(index) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    color = if (isSelected) Color.White else Color(0xFF64748B),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
     }
 }
 
 // --- Date Filter Dropdown Component ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SharedDateRangeFilter(selectedOption: String, themeColor: Color, onOptionSelected: (String) -> Unit) {
-    val options = listOf("সব সময়", "চলতি মাস", "গত মাস", "গত ৬ মাস", "কাস্টম রেঞ্জ")
+private fun SharedDateRangeFilter(selectedOption: String, themeColor: Color, modifier: Modifier = Modifier, onOptionSelected: (String) -> Unit) {
+    val options = listOf(
+        stringResource(R.string.filter_all_time),
+        stringResource(R.string.filter_this_month),
+        stringResource(R.string.filter_last_month),
+        stringResource(R.string.filter_last_6_months),
+        stringResource(R.string.filter_custom_range)
+    )
+
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            readOnly = true,
-            value = selectedOption,
-            onValueChange = { },
-            leadingIcon = { Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = themeColor) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = themeColor,
-                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+    Box(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = themeColor,
+                containerColor = Color.White
             ),
-            shape = RoundedCornerShape(14.dp), // Compact height
-            modifier = Modifier.menuAnchor().fillMaxWidth().height(52.dp),
-            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        )
-        ExposedDropdownMenu(
+            contentPadding = PaddingValues(horizontal = 12.dp)
+        ) {
+            Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = selectedOption,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(Color.White)
@@ -642,53 +738,6 @@ private fun SharedDateRangeFilter(selectedOption: String, themeColor: Color, onO
     }
 }
 
-// --- Minimalist Tab Switcher ---
-@Composable
-fun CustomMinimalTab(selectedIndex: Int, onTabSelected: (Int) -> Unit, receivableAmount: Float, payableAmount: Float, themeColor: Color) {
-    val tabTitles = listOf("পাবো (পাওনা)", "দিবো (দেনা)")
-    val tabColors = listOf(Color(0xFF10B981), Color(0xFFF43F5E))
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(68.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .padding(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        tabTitles.forEachIndexed { index, title ->
-            val isSelected = selectedIndex == index
-            val amount = if (index == 0) receivableAmount else payableAmount
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (isSelected) themeColor.copy(alpha = 0.1f) else Color.Transparent)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onTabSelected(index) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(
-                        text = title,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 13.sp,
-                        color = if (isSelected) tabColors[index] else Color(0xFF94A3B8)
-                    )
-                    Text(
-                        text = "৳${amount.toInt()}",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.sp,
-                        color = if (isSelected) tabColors[index] else Color(0xFF64748B)
-                    )
-                }
-            }
-        }
-    }
-}
-
 // --- Modern Compact Card Design with Glowing Shadow ---
 @Composable
 fun ModernDebtCreditCard(transaction: Transaction, themeColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -696,73 +745,156 @@ fun ModernDebtCreditCard(transaction: Transaction, themeColor: Color, modifier: 
     val progress = if (transaction.amount > 0) (transaction.settledAmount / transaction.amount).toFloat() else 0f
     val isSettled = remaining <= 0
 
-    val sdf = SimpleDateFormat("dd MMM, yy", Locale("bn", "BD"))
+    val dateString = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale.getDefault()).format(Date(transaction.date))
     val isOverdue = transaction.dueDate != null && transaction.dueDate < System.currentTimeMillis() && !isSettled
+    val amountPrefix = if (transaction.type == "Borrowing") "+" else "-"
 
     val animProgress by animateFloatAsState(targetValue = progress, animationSpec = tween(1200), label = "progress")
 
-    Box(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 8.dp, // Glowing effect
-                shape = RoundedCornerShape(16.dp), // Compact shape
-                spotColor = themeColor.copy(alpha = 0.6f), // Dynamic glow color
-                ambientColor = themeColor.copy(alpha = 0.3f)
-            )
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(0.5.dp, themeColor.copy(alpha = 0.1f))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = if (!isSettled) 10.dp else 0.dp) // প্রগ্রেস বারের জন্য নিচে প্যাডিং
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) { // Compact padding
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(themeColor.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // ক্যাটাগরি আইকন
+                Box(
+                    modifier = Modifier
+                        .padding(start = 12.dp, top = 8.dp, bottom = 8.dp)
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(themeColor.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Person, // Fallback icon
+                        contentDescription = null,
+                        tint = themeColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // কন্টেন্ট এরিয়া
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(transaction.title.take(1).uppercase(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = themeColor)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(transaction.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(if (isSettled) "পরিশোধিত ✅" else "বাকি: ৳${remaining.toInt()}", fontSize = 11.sp, color = if (isSettled) Color(0xFF10B981) else Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("৳${transaction.amount.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
-                        if (transaction.dueDate != null) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Schedule, contentDescription = null, tint = if (isOverdue) Color(0xFFF43F5E) else Color(0xFF94A3B8), modifier = Modifier.size(10.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = sdf.format(Date(transaction.dueDate)),
-                                    fontSize = 10.sp,
-                                    color = if (isOverdue) Color(0xFFF43F5E) else Color(0xFF94A3B8),
-                                    fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Medium
-                                )
+                        // টাইটেল এবং স্ট্যাটাস
+                        val titleText = transaction.title.trim()
+                        val categoryText = transaction.category.trim()
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = if (titleText.isNotBlank() && titleText != "-") titleText else categoryText,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E293B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(Color(0xFFCBD5E1)))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isSettled) stringResource(R.string.status_settled_short) else stringResource(R.string.label_remaining_short, remaining.toInt()),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSettled) Color(0xFF10B981) else Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // পিল ব্যাজগুলো (তারিখ এবং ডেডলাইন)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // ক্যালেন্ডার আইকন বক্স
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(themeColor)
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            // ডেট বক্স
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(themeColor)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(dateString, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+
+                            // ডেডলাইন বক্স (যদি থাকে)
+                            if (transaction.dueDate != null) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isOverdue) Color.Red else Color.Gray)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val dueSdf = SimpleDateFormat("dd MMM, yy", Locale.getDefault())
+                                    Text(stringResource(R.string.label_deadline_date, dueSdf.format(Date(transaction.dueDate))), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
-                }
 
-                if (!isSettled) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        LinearProgressIndicator(
-                            progress = { animProgress },
-                            modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(50)),
-                            color = themeColor,
-                            trackColor = Color(0xFFF1F5F9),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("${(animProgress * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = themeColor)
-                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // টাকার অংক
+                    Text(
+                        text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = themeColor
+                    )
+                }
+            }
+
+            // প্রগ্রেস বার (নিচে এক লাইনে)
+            if (!isSettled) {
+                Row(
+                    modifier = Modifier.padding(start = 60.dp, end = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LinearProgressIndicator(
+                        progress = { animProgress },
+                        modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(50)),
+                        color = themeColor,
+                        trackColor = Color(0xFFF1F5F9),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("${(animProgress * 100).toInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = themeColor)
                 }
             }
         }

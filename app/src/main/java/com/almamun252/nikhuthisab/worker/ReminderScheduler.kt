@@ -2,13 +2,17 @@ package com.almamun252.nikhuthisab.worker
 
 import android.content.Context
 import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object ReminderScheduler {
 
+    // দেনা-পাওনা নির্দিষ্ট তারিখের রিমাইন্ডার
     fun scheduleReminder(
         context: Context,
         transactionId: Int,
@@ -19,20 +23,15 @@ object ReminderScheduler {
     ) {
         val currentTime = System.currentTimeMillis()
 
-        // যদি ডেডলাইন পার হয়ে গিয়ে থাকে, তবে আর নোটিফিকেশন শিডিউল করার দরকার নেই
         if (dueDate <= currentTime) {
             return
         }
 
-        // ডেডলাইনের ২৪ ঘণ্টা (৮৬,৪০০,০০০ মিলিসেকেন্ড) আগের সময় হিসাব করা
         val reminderTime = dueDate - TimeUnit.HOURS.toMillis(24)
         val delay = reminderTime - currentTime
 
-        // যদি ডেডলাইনের আর ২৪ ঘণ্টাও বাকি না থাকে, তবে আমরা খুব অল্প সময়ের (১ মিনিট) মধ্যে
-        // নোটিফিকেশনটি ফায়ার করে দেব যাতে ইউজার মিস না করে।
         val actualDelay = if (delay > 0) delay else TimeUnit.MINUTES.toMillis(1)
 
-        // ওয়ার্কারের কাছে ডেটা পাঠানো
         val inputData = Data.Builder()
             .putInt("transactionId", transactionId)
             .putString("title", title)
@@ -40,26 +39,55 @@ object ReminderScheduler {
             .putString("type", type)
             .build()
 
-        // একবার কাজ করার জন্য রিকোয়েস্ট তৈরি
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(actualDelay, TimeUnit.MILLISECONDS)
             .setInputData(inputData)
             .build()
 
-        // প্রতিটি লেনদেনের জন্য একটি ইউনিক নাম সেট করা, যাতে পরে চাইলে ক্যানসেল বা আপডেট করা যায়
         val workName = "reminder_$transactionId"
 
-        // WorkManager এর কাছে শিডিউল জমা দেওয়া
         WorkManager.getInstance(context).enqueueUniqueWork(
             workName,
-            ExistingWorkPolicy.REPLACE, // যদি একই আইডির জন্য আগে কোনো কাজ থাকে, তবে তা নতুন ডেটা দিয়ে রিপ্লেস হবে
+            ExistingWorkPolicy.REPLACE,
             workRequest
         )
     }
 
-    // নোটিফিকেশন শিডিউল ক্যানসেল করার ফাংশন
     fun cancelReminder(context: Context, transactionId: Int) {
         val workName = "reminder_$transactionId"
         WorkManager.getInstance(context).cancelUniqueWork(workName)
+    }
+
+    // প্রতিদিন রাত ৮ টার রিমাইন্ডার (Daily 8:00 PM Reminder)
+    fun scheduleDailyReminder(context: Context) {
+        val currentDate = Calendar.getInstance()
+        val dueDate = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 20) // রাত ৮টা (24-hour format এ 20)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+
+            // যদি আজকের রাত ৮টা ইতিমধ্যে পার হয়ে গিয়ে থাকে, তাহলে আগামীকালের জন্য সেট করবে
+            if (before(currentDate)) {
+                add(Calendar.HOUR_OF_DAY, 24)
+            }
+        }
+
+        val timeDiff = dueDate.timeInMillis - currentDate.timeInMillis
+
+        val inputData = Data.Builder()
+            .putString("type", "DailyReminder")
+            .build()
+
+        // প্রতিদিন একবার চালানোর জন্য PeriodicWorkRequest (২৪ ঘণ্টা অন্তর)
+        val dailyWorkRequest = PeriodicWorkRequestBuilder<NotificationWorker>(24, TimeUnit.HOURS)
+            .setInitialDelay(timeDiff, TimeUnit.MILLISECONDS)
+            .setInputData(inputData)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "daily_8pm_reminder",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            dailyWorkRequest
+        )
     }
 }

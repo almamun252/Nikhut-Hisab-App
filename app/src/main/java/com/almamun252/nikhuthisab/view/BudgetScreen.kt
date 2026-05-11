@@ -5,7 +5,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,14 +27,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.Budget
 import com.almamun252.nikhuthisab.viewmodel.BudgetViewModel
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
@@ -56,7 +55,8 @@ fun BudgetScreen(
     // বর্তমান মাস বের করা (যেমন: "05-2026")
     val cal = Calendar.getInstance()
     val currentMonthStr = SimpleDateFormat("MM-yyyy", Locale.US).format(cal.time)
-    val displayMonthStr = SimpleDateFormat("MMMM yyyy", Locale("bn", "BD")).format(cal.time)
+    // Locale.getDefault() ব্যবহার করা হয়েছে যাতে ভাষা পরিবর্তনের সাথে সাথে মাসের নাম বদলে যায়
+    val displayMonthStr = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
 
     // ডাটাবেস থেকে ডেটা আনা
     val budgets by budgetViewModel.getBudgetsForMonth(currentMonthStr).collectAsState(initial = emptyList())
@@ -82,7 +82,17 @@ fun BudgetScreen(
     var selectedCategory by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
 
-    val availableCategories = listOf("খাবার", "যাতায়াত", "বাসা ভাড়া", "শপিং", "বিল", "চিকিৎসা", "শিক্ষা", "অন্যান্য")
+    // ক্যাটাগরিগুলো ডাইনামিক করা হলো
+    val availableCategories = listOf(
+        stringResource(R.string.cat_food),
+        stringResource(R.string.cat_transport),
+        stringResource(R.string.cat_rent),
+        stringResource(R.string.cat_shopping),
+        stringResource(R.string.cat_bills),
+        stringResource(R.string.cat_health),
+        stringResource(R.string.cat_education),
+        stringResource(R.string.cat_other)
+    )
 
     Scaffold(
         containerColor = Color(0xFFF8FAFC),
@@ -106,7 +116,7 @@ fun BudgetScreen(
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Add")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("নতুন বাজেট", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_new_budget), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -135,11 +145,11 @@ fun BudgetScreen(
                             .clickable { navController.popBackStack() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color(0xFF334155))
+                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = stringResource(R.string.desc_back), tint = Color(0xFF334155))
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("মাসিক বাজেট", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                        Text(stringResource(R.string.title_monthly_budget), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
                         Text(displayMonthStr, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
                     }
                 }
@@ -156,9 +166,9 @@ fun BudgetScreen(
                             Icon(Icons.Rounded.Category, contentDescription = null, tint = Color(0xFF4F46E5).copy(alpha = 0.6f), modifier = Modifier.size(50.dp))
                         }
                         Spacer(modifier = Modifier.height(20.dp))
-                        Text("এই মাসে কোনো বাজেট নেই!", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.msg_no_budget_this_month), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("খরচ নিয়ন্ত্রণে রাখতে বাজেট সেট করুন", fontSize = 14.sp, color = Color.Gray)
+                        Text(stringResource(R.string.desc_set_budget_to_control), fontSize = 14.sp, color = Color.Gray)
                     }
                 }
             } else {
@@ -184,7 +194,7 @@ fun BudgetScreen(
                             },
                             onDeleteClick = {
                                 budgetViewModel.deleteBudget(budget.id)
-                                Toast.makeText(context, "বাজেট মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_budget_deleted), Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
@@ -200,7 +210,7 @@ fun BudgetScreen(
             containerColor = Color.White,
             title = {
                 Text(
-                    text = if (selectedBudgetToEdit == null) "নতুন বাজেট সেট করুন" else "বাজেট আপডেট করুন",
+                    text = if (selectedBudgetToEdit == null) stringResource(R.string.title_set_new_budget) else stringResource(R.string.title_update_budget),
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
                 )
@@ -216,7 +226,7 @@ fun BudgetScreen(
                             value = selectedCategory,
                             onValueChange = { },
                             readOnly = true,
-                            label = { Text("ক্যাটাগরি নির্বাচন করুন") },
+                            label = { Text(stringResource(R.string.label_select_category)) },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             shape = RoundedCornerShape(12.dp),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
@@ -243,7 +253,7 @@ fun BudgetScreen(
                     OutlinedTextField(
                         value = amountInput,
                         onValueChange = { amountInput = it },
-                        label = { Text("বাজেটের পরিমাণ") },
+                        label = { Text(stringResource(R.string.label_budget_amount)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -260,7 +270,7 @@ fun BudgetScreen(
                             // চেক করা যে এই ক্যাটাগরিতে অলরেডি বাজেট আছে কি না
                             val exists = budgets.find { it.category == selectedCategory }
                             if (exists != null && selectedBudgetToEdit == null) {
-                                Toast.makeText(context, "এই ক্যাটাগরিতে আগে থেকেই বাজেট আছে!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_budget_exists), Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
@@ -272,20 +282,20 @@ fun BudgetScreen(
                             )
                             budgetViewModel.insertBudget(newBudget)
                             showAddBudgetDialog = false
-                            Toast.makeText(context, "বাজেট সেভ হয়েছে", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_budget_saved), Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(context, "সঠিক তথ্য দিন!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_enter_valid_info), Toast.LENGTH_SHORT).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("সেভ করুন", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_save), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddBudgetDialog = false }) {
-                    Text("বাতিল", color = Color.Gray)
+                    Text(stringResource(R.string.btn_cancel), color = Color.Gray)
                 }
             }
         )
@@ -300,15 +310,20 @@ fun BudgetProgressCard(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    // ডাইনামিক স্ট্রিং ভ্যারিয়েবলগুলো নেয়া হচ্ছে
+    val statusWarning = stringResource(R.string.status_budget_warning)
+    val statusCareful = stringResource(R.string.status_spend_carefully)
+    val statusSafe = stringResource(R.string.status_budget_safe)
+
     // Traffic Light Logic 🚦
     val progressRatio = if (budget.limitAmount > 0) (spentAmount / budget.limitAmount).toFloat() else 0f
     val safeRatio = progressRatio.coerceIn(0f, 1f) // 1 এর বেশি যেন না যায় প্রগ্রেস বারের জন্য
 
     // কালার ডিসিশন
     val (progressColor, lightColor, statusText) = when {
-        progressRatio >= 0.8f -> Triple(Color(0xFFF43F5E), Color(0xFFFFF1F2), "সতর্কতা! বাজেট প্রায় শেষ") // লাল (৮০% এর ওপর)
-        progressRatio >= 0.5f -> Triple(Color(0xFFF59E0B), Color(0xFFFFFBEB), "সাবধানে খরচ করুন") // হলুদ (৫০% থেকে ৮০%)
-        else -> Triple(Color(0xFF10B981), Color(0xFFECFDF5), "বাজেট নিরাপদ আছে") // সবুজ (০% থেকে ৫০%)
+        progressRatio >= 0.8f -> Triple(Color(0xFFF43F5E), Color(0xFFFFF1F2), statusWarning) // লাল (৮০% এর ওপর)
+        progressRatio >= 0.5f -> Triple(Color(0xFFF59E0B), Color(0xFFFFFBEB), statusCareful) // হলুদ (৫০% থেকে ৮০%)
+        else -> Triple(Color(0xFF10B981), Color(0xFFECFDF5), statusSafe) // সবুজ (০% থেকে ৫০%)
     }
 
     val animProgress by animateFloatAsState(targetValue = safeRatio, animationSpec = tween(1200), label = "progress")
@@ -347,7 +362,7 @@ fun BudgetProgressCard(
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(Icons.Rounded.Warning, contentDescription = "Options", tint = Color.Gray) // Threedots এর বদলে warning দিলাম আপাতত
+                        Icon(Icons.Rounded.Warning, contentDescription = stringResource(R.string.desc_options), tint = Color.Gray)
                     }
                     DropdownMenu(
                         expanded = expanded,
@@ -355,11 +370,11 @@ fun BudgetProgressCard(
                         modifier = Modifier.background(Color.White).clip(RoundedCornerShape(12.dp))
                     ) {
                         DropdownMenuItem(
-                            text = { Row{ Icon(Icons.Filled.Edit, null, tint=Color.Gray, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("এডিট করুন") } },
+                            text = { Row{ Icon(Icons.Filled.Edit, null, tint=Color.Gray, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_edit)) } },
                             onClick = { expanded = false; onEditClick() }
                         )
                         DropdownMenuItem(
-                            text = { Row{ Icon(Icons.Filled.Delete, null, tint=Color.Red, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("মুছে ফেলুন", color=Color.Red) } },
+                            text = { Row{ Icon(Icons.Filled.Delete, null, tint=Color.Red, modifier=Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_delete), color=Color.Red) } },
                             onClick = { expanded = false; onDeleteClick() }
                         )
                     }
@@ -370,8 +385,8 @@ fun BudgetProgressCard(
 
             // Amount Details
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("খরচ হয়েছে: ৳${spentAmount.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
-                Text("বাজেট: ৳${budget.limitAmount.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                Text(stringResource(R.string.label_spent, spentAmount.toInt()), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                Text(stringResource(R.string.label_budget_colon, budget.limitAmount.toInt()), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -390,10 +405,10 @@ fun BudgetProgressCard(
             val remaining = budget.limitAmount - spentAmount
             if (remaining < 0) {
                 Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFF1F2)).padding(8.dp), contentAlignment = Alignment.Center) {
-                    Text("বাজেট থেকে ৳${Math.abs(remaining).toInt()} বেশি খরচ হয়েছে!", color = Color(0xFFF43F5E), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(stringResource(R.string.msg_over_budget, Math.abs(remaining).toInt()), color = Color(0xFFF43F5E), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             } else {
-                Text("বাকি আছে: ৳${remaining.toInt()}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF10B981))
+                Text(stringResource(R.string.msg_remaining_budget, remaining.toInt()), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF10B981))
             }
         }
     }

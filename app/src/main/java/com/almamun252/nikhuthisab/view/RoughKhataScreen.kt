@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.RoughTransaction
 import com.almamun252.nikhuthisab.viewmodel.RoughViewModel
 import java.text.SimpleDateFormat
@@ -60,7 +63,18 @@ fun RoughKhataScreen(
     var selectedCategory by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
 
-    val availableCategories = listOf("খাবার", "যাতায়াত", "বাসা ভাড়া", "শপিং", "বিল", "চিকিৎসা", "শিক্ষা", "অন্যান্য")
+    val catOtherStr = stringResource(R.string.cat_other)
+
+    val availableCategories = listOf(
+        stringResource(R.string.cat_food),
+        stringResource(R.string.cat_transport),
+        stringResource(R.string.cat_rent),
+        stringResource(R.string.cat_shopping),
+        stringResource(R.string.cat_bills),
+        stringResource(R.string.cat_health),
+        stringResource(R.string.cat_education),
+        catOtherStr
+    )
 
     val totalAmount = roughTransactions.sumOf { it.amount }
     val themeColor = Color(0xFF6366F1) // Indigo/Purple theme for Rough Khata
@@ -89,7 +103,7 @@ fun RoughKhataScreen(
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Add")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("নতুন রাফ হিসাব", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_new_rough_khata), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -120,12 +134,12 @@ fun RoughKhataScreen(
                                 .clickable { navController.popBackStack() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color(0xFF334155))
+                            Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = stringResource(R.string.desc_back), tint = Color(0xFF334155))
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("রাফ খাতা", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
-                            Text("সাময়িক হিসাবের তালিকা", fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.title_rough_khata), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                            Text(stringResource(R.string.subtitle_rough_khata), fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -134,7 +148,7 @@ fun RoughKhataScreen(
                             onClick = { showClearDialog = true },
                             modifier = Modifier.background(Color(0xFFFEF2F2), CircleShape)
                         ) {
-                            Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear All", tint = Color(0xFFEF4444))
+                            Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(R.string.desc_clear_all), tint = Color(0xFFEF4444))
                         }
                     }
                 }
@@ -154,7 +168,7 @@ fun RoughKhataScreen(
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("রাফ খাতার মোট খরচ", color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.label_rough_total_expense), color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("৳ ${totalAmount.toInt()}", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
                         }
@@ -173,9 +187,9 @@ fun RoughKhataScreen(
                             Icon(Icons.Rounded.Draw, contentDescription = null, tint = themeColor.copy(alpha = 0.6f), modifier = Modifier.size(50.dp))
                         }
                         Spacer(modifier = Modifier.height(20.dp))
-                        Text("রাফ খাতা একদম ফাঁকা!", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.msg_rough_empty), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("বন্ধুদের সাথে ট্যুর বা শপিংয়ের হিসাব এখানে রাখুন।", fontSize = 14.sp, color = Color.Gray)
+                        Text(stringResource(R.string.msg_rough_empty_desc), fontSize = 14.sp, color = Color.Gray)
                     }
                 }
             } else {
@@ -201,9 +215,9 @@ fun RoughKhataScreen(
             AlertDialog(
                 onDismissRequest = { showAddDialog = false },
                 containerColor = Color.White,
-                title = { Text("নতুন রাফ হিসাব", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.btn_new_rough_khata), fontWeight = FontWeight.Bold) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         // Category Dropdown
                         ExposedDropdownMenuBox(
                             expanded = categoryExpanded,
@@ -213,11 +227,16 @@ fun RoughKhataScreen(
                                 value = selectedCategory,
                                 onValueChange = { },
                                 readOnly = true,
-                                label = { Text("ক্যাটাগরি") },
+                                label = { Text(stringResource(R.string.label_category)) },
                                 modifier = Modifier.fillMaxWidth().menuAnchor(),
                                 shape = RoundedCornerShape(12.dp),
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor)
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = themeColor,
+                                    unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
                             )
                             ExposedDropdownMenu(
                                 expanded = categoryExpanded,
@@ -236,36 +255,30 @@ fun RoughKhataScreen(
                             }
                         }
 
-                        OutlinedTextField(
+                        RoughKhataFloatingTextField(
                             value = inputTitle,
                             onValueChange = { inputTitle = it },
-                            label = { Text("হিসাবের নাম (যেমন: রিকশা)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            label = stringResource(R.string.label_rough_name_hint),
+                            themeColor = themeColor,
+                            labelBackgroundColor = Color.White
                         )
 
-                        OutlinedTextField(
+                        RoughKhataFloatingTextField(
                             value = inputAmount,
                             onValueChange = { inputAmount = it },
-                            label = { Text("টাকার পরিমাণ") },
+                            label = stringResource(R.string.label_amount_only),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
                             leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor, modifier = Modifier.padding(start = 12.dp)) },
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            themeColor = themeColor,
+                            labelBackgroundColor = Color.White
                         )
 
-                        OutlinedTextField(
+                        RoughKhataFloatingTextField(
                             value = inputNote,
                             onValueChange = { inputNote = it },
-                            label = { Text("নোট (ঐচ্ছিক)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            label = stringResource(R.string.label_detailed_note_optional),
+                            themeColor = themeColor,
+                            labelBackgroundColor = Color.White
                         )
                     }
                 },
@@ -278,22 +291,22 @@ fun RoughKhataScreen(
                                     RoughTransaction(
                                         title = inputTitle.trim(),
                                         amount = amount,
-                                        category = selectedCategory.ifEmpty { "অন্যান্য" },
+                                        category = selectedCategory.ifEmpty { catOtherStr },
                                         note = inputNote.trim(),
                                         date = System.currentTimeMillis()
                                     )
                                 )
                                 showAddDialog = false
                             } else {
-                                Toast.makeText(context, "সঠিক তথ্য দিন!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_enter_valid_info), Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                         shape = RoundedCornerShape(12.dp)
-                    ) { Text("যোগ করুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_add), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddDialog = false }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { showAddDialog = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
@@ -304,20 +317,20 @@ fun RoughKhataScreen(
                 onDismissRequest = { transferConfirmDialogItem = null },
                 containerColor = Color.White,
                 icon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = themeColor, modifier = Modifier.size(40.dp)) },
-                title = { Text("মূল হিসাবে পাঠাবেন?", fontWeight = FontWeight.Bold) },
-                text = { Text("এই খরচটি আপনার মেইন ব্যালেন্স থেকে কাটা হবে এবং '${transferConfirmDialogItem?.category}' ক্যাটাগরিতে যুক্ত হবে। আপনি কি নিশ্চিত?") },
+                title = { Text(stringResource(R.string.title_move_to_main_confirm), fontWeight = FontWeight.Bold) },
+                text = { Text(stringResource(R.string.msg_move_to_main_desc, transferConfirmDialogItem?.category ?: "")) },
                 confirmButton = {
                     Button(
                         onClick = {
                             roughViewModel.moveToMain(transferConfirmDialogItem!!)
                             transferConfirmDialogItem = null
-                            Toast.makeText(context, "মূল হিসাবে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_moved_to_main_success), Toast.LENGTH_SHORT).show()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor)
-                    ) { Text("হ্যাঁ, যুক্ত করুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_yes_add), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { transferConfirmDialogItem = null }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { transferConfirmDialogItem = null }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
@@ -327,20 +340,20 @@ fun RoughKhataScreen(
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
                 containerColor = Color.White,
-                title = { Text("সব হিসাব মুছে ফেলবেন?", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold) },
-                text = { Text("ট্যুর বা ইভেন্ট শেষ? রাফ খাতার সব হিসাব মুছে নতুন করে শুরু করতে পারেন।") },
+                title = { Text(stringResource(R.string.title_clear_all_rough), color = Color(0xFFEF4444), fontWeight = FontWeight.Bold) },
+                text = { Text(stringResource(R.string.msg_clear_all_rough_desc)) },
                 confirmButton = {
                     Button(
                         onClick = {
                             roughViewModel.clearAll()
                             showClearDialog = false
-                            Toast.makeText(context, "সব হিসাব মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_all_deleted_successfully), Toast.LENGTH_SHORT).show()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
-                    ) { Text("হ্যাঁ, মুছে ফেলুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_yes_delete), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearDialog = false }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
@@ -354,7 +367,7 @@ fun RoughTransactionCard(
     onMoveClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val dateString = SimpleDateFormat("dd MMM, hh:mm a", Locale("bn", "BD")).format(Date(transaction.date))
+    val dateString = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(transaction.date))
     val isMoved = transaction.isMovedToMain == 1
 
     Card(
@@ -374,6 +387,7 @@ fun RoughTransactionCard(
                             .background(themeColor.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Assuming getCategoryIcon is imported or globally available
                         Icon(getCategoryIcon(transaction.category), contentDescription = null, tint = themeColor, modifier = Modifier.size(20.dp))
                     }
 
@@ -398,7 +412,7 @@ fun RoughTransactionCard(
                         if (transaction.note.isNotBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "নোট: ${transaction.note}",
+                                text = stringResource(R.string.label_note_prefix, transaction.note),
                                 fontSize = 12.sp,
                                 color = Color(0xFF94A3B8),
                                 maxLines = 2,
@@ -425,7 +439,7 @@ fun RoughTransactionCard(
                             .clickable { onDeleteClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.desc_delete), tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -441,7 +455,7 @@ fun RoughTransactionCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("মূল খরচের খাতায় যুক্ত করা হয়েছে", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(stringResource(R.string.status_moved_to_main), color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             } else {
@@ -454,9 +468,65 @@ fun RoughTransactionCard(
                 ) {
                     Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = "Move", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("মূল খরচে সরান", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(stringResource(R.string.btn_move_to_main), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
+    }
+}
+
+// --- Custom Always Floating Label Component ---
+@Composable
+private fun RoughKhataFloatingTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    readOnly: Boolean = false,
+    singleLine: Boolean = true,
+    textStyle: TextStyle = LocalTextStyle.current,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
+    themeColor: Color,
+    labelBackgroundColor: Color = Color.White
+) {
+    Box(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            readOnly = readOnly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!singleLine) Modifier.heightIn(min = 120.dp) else Modifier),
+            shape = shape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = themeColor,
+                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
+            ),
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon,
+            keyboardOptions = keyboardOptions,
+            singleLine = singleLine,
+            maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+            textStyle = textStyle
+        )
+
+        // Custom always-floating label text placed exactly over the border line
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = themeColor,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 16.dp)
+                .offset(y = (-8).dp)
+                .background(labelBackgroundColor) // Background color to match exactly with screen or dialog
+                .padding(horizontal = 4.dp)
+        )
     }
 }

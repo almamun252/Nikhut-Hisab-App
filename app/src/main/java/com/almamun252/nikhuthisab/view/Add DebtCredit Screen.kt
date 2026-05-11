@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.worker.ReminderScheduler
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
@@ -74,14 +76,17 @@ fun AddDebtCreditScreen(
 
     val isLending = type == "Lending"
     val themeColor = if (isLending) Color(0xFF10B981) else Color(0xFFF43F5E) // Emerald / Rose
+    val lightThemeColor = if (isLending) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+    val screenBackgroundColor = Color(0xFFF8FAFC) // স্ক্রিনের ব্যাকগ্রাউন্ড কালার
 
+    // Dynamic Strings using stringResource
     val screenTitle = if (transactionId != null) {
-        if (isLending) "পাওনা আপডেট" else "দেনা আপডেট"
+        if (isLending) stringResource(R.string.title_update_lending) else stringResource(R.string.title_update_borrowing)
     } else {
-        if (isLending) "নতুন পাওনা যোগ" else "নতুন দেনা যোগ"
+        if (isLending) stringResource(R.string.title_add_lending) else stringResource(R.string.title_add_borrowing)
     }
 
-    val nameLabel = if (isLending) "কাকে দিচ্ছেন? (নাম)" else "কার কাছ থেকে নিচ্ছেন? (নাম)"
+    val nameLabel = if (isLending) stringResource(R.string.label_lending_to) else stringResource(R.string.label_borrowing_from)
 
     LaunchedEffect(existingTransaction) {
         existingTransaction?.let {
@@ -94,7 +99,7 @@ fun AddDebtCreditScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(screenBackgroundColor)) {
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 150 },
@@ -117,65 +122,61 @@ fun AddDebtCreditScreen(
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.White).clickable { navController.popBackStack() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = "Back", tint = Color(0xFF334155))
+                        Icon(Icons.Rounded.ArrowBackIosNew, contentDescription = stringResource(R.string.desc_back), tint = Color(0xFF334155))
                     }
                     Text(text = screenTitle, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1E293B))
                     Spacer(modifier = Modifier.size(44.dp))
                 }
 
                 // --- Amount Input Field ---
-                OutlinedTextField(
+                DebtCreditFloatingTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("টাকার পরিমাণ *", fontWeight = FontWeight.Medium) },
+                    label = stringResource(R.string.label_amount_required),
                     leadingIcon = {
                         Box(
-                            modifier = Modifier.padding(start = 12.dp).size(36.dp).clip(CircleShape).background(themeColor.copy(alpha = 0.1f)),
+                            modifier = Modifier.padding(start = 12.dp).size(36.dp).clip(CircleShape).background(lightThemeColor),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("৳", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
                     textStyle = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = themeColor),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0), focusedLabelColor = themeColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                    ),
-                    singleLine = true
+                    shape = RoundedCornerShape(20.dp),
+                    themeColor = themeColor,
+                    labelBackgroundColor = screenBackgroundColor
                 )
 
                 // --- Form Fields ---
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
                     // Person Name
-                    OutlinedTextField(
+                    DebtCreditFloatingTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text(nameLabel) },
+                        label = nameLabel,
                         leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null, tint = themeColor) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0), focusedLabelColor = themeColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                        ),
-                        singleLine = true
+                        themeColor = themeColor,
+                        labelBackgroundColor = screenBackgroundColor
                     )
 
-                    // Transaction Date & Time
-                    val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
+                    // Transaction Date & Time (Standard OutlinedTextField with transparent bg)
+                    val sdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale.getDefault())
 
                     Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = sdf.format(Date(selectedDateMillis)),
                             onValueChange = { },
                             readOnly = true,
-                            label = { Text("প্রদানের তারিখ ও সময়") },
+                            label = { Text(stringResource(R.string.label_date_time_given)) },
                             leadingIcon = { Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = themeColor) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0), focusedLabelColor = themeColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )
@@ -184,18 +185,21 @@ fun AddDebtCreditScreen(
                         )
                     }
 
-                    // Due Date (Deadline) - Updated with time format
-                    val dueSdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD"))
+                    // Due Date (Deadline) - (Standard OutlinedTextField with transparent bg)
+                    val dueSdf = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale.getDefault())
                     Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
-                            value = dueDateMillis?.let { dueSdf.format(Date(it)) } ?: "ডেডলাইন সেট করুন (ঐচ্ছিক)",
+                            value = dueDateMillis?.let { dueSdf.format(Date(it)) } ?: stringResource(R.string.label_set_deadline_optional),
                             onValueChange = { },
                             readOnly = true,
-                            label = { Text("কবে পরিশোধ করবে/করবেন?") },
+                            label = { Text(stringResource(R.string.label_when_repay)) },
                             leadingIcon = { Icon(Icons.Rounded.EventAvailable, contentDescription = null, tint = if (dueDateMillis != null) themeColor else Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0), focusedLabelColor = themeColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                                focusedBorderColor = themeColor,
+                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )
@@ -207,23 +211,20 @@ fun AddDebtCreditScreen(
                                 onClick = { dueDateMillis = null },
                                 modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
                             ) {
-                                Icon(Icons.Rounded.Close, contentDescription = "Clear", tint = Color.Gray)
+                                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.desc_clear), tint = Color.Gray)
                             }
                         }
                     }
 
                     // Note Field
-                    OutlinedTextField(
+                    DebtCreditFloatingTextField(
                         value = note,
                         onValueChange = { note = it },
-                        label = { Text("বিস্তারিত নোট (ঐচ্ছিক)") },
+                        label = stringResource(R.string.label_detailed_note_optional),
                         leadingIcon = { Icon(Icons.Rounded.Subject, contentDescription = null, tint = themeColor) },
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        maxLines = 4,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0), focusedLabelColor = themeColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                        )
+                        singleLine = false,
+                        themeColor = themeColor,
+                        labelBackgroundColor = screenBackgroundColor
                     )
                 }
 
@@ -236,11 +237,11 @@ fun AddDebtCreditScreen(
                         val finalTitle = title.trim()
 
                         if (amountValue == null || amountValue <= 0) {
-                            Toast.makeText(context, "সঠিক টাকার পরিমাণ দিন!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_valid_amount_required), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         if (finalTitle.isEmpty()) {
-                            Toast.makeText(context, "ব্যক্তির নাম দেওয়া আবশ্যক!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_person_name_required), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
@@ -249,7 +250,7 @@ fun AddDebtCreditScreen(
                             title = finalTitle,
                             amount = amountValue,
                             type = type, // Lending or Borrowing
-                            category = if (isLending) "ধার দিয়েছি" else "ধার নিয়েছি",
+                            category = if (isLending) context.getString(R.string.cat_lent) else context.getString(R.string.cat_borrowed),
                             date = selectedDateMillis,
                             note = note.trim().ifEmpty { null },
                             dueDate = dueDateMillis,
@@ -259,15 +260,13 @@ fun AddDebtCreditScreen(
                         if (transactionId != null && existingTransaction != null) {
                             viewModel.deleteTransaction(existingTransaction)
                             viewModel.insertTransaction(transaction)
-                            Toast.makeText(context, "আপডেট হয়েছে!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_updated_successfully), Toast.LENGTH_SHORT).show()
                         } else {
                             viewModel.insertTransaction(transaction)
-                            Toast.makeText(context, "সফলভাবে সেভ হয়েছে!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_saved_successfully), Toast.LENGTH_SHORT).show()
                         }
 
                         // --- নোটিফিকেশন শিডিউল বা ক্যানসেল করা ---
-                        // (নোট: Room Database যদি নতুন ইনসার্টের ক্ষেত্রে ID জেনারেট করে তবে transaction.id '0' হতে পারে।
-                        // সে ক্ষেত্রে রিমাইন্ডার আইডিকে ইউনিক করার জন্য একটি ফলব্যাক ব্যবহার করা হলো)
                         val reminderId = if (transaction.id != 0) transaction.id else transaction.hashCode()
 
                         if (dueDateMillis != null) {
@@ -280,7 +279,6 @@ fun AddDebtCreditScreen(
                                 dueDate = dueDateMillis!!
                             )
                         } else {
-                            // যদি আগে ডেডলাইন ছিল কিন্তু এখন মুছে ফেলা হয়েছে, তবে নোটিফিকেশন ক্যানসেল করতে হবে
                             ReminderScheduler.cancelReminder(context, reminderId)
                         }
 
@@ -292,7 +290,7 @@ fun AddDebtCreditScreen(
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
                 ) {
                     Text(
-                        text = if (transactionId != null) "আপডেট করুন" else "সেভ করুন",
+                        text = if (transactionId != null) stringResource(R.string.btn_update) else stringResource(R.string.btn_save),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -314,9 +312,9 @@ fun AddDebtCreditScreen(
                     datePickerState.selectedDateMillis?.let { tempDateMillis = it }
                     showDatePicker = false
                     showTimePicker = true // তারিখের পর সময় সিলেক্ট হবে
-                }) { Text("পরবর্তী (সময়)", fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.btn_next_time), fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("বাতিল", color = Color.Red) } }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Red) } }
         ) { DatePicker(state = datePickerState) }
     }
 
@@ -339,13 +337,13 @@ fun AddDebtCreditScreen(
                     selectedDateMillis = calendar.timeInMillis
                     showTimePicker = false
                 }) {
-                    Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("বাতিল", color = Color.Red) }
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Red) }
             },
-            title = { Text("সময় নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.title_select_time), fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -367,10 +365,10 @@ fun AddDebtCreditScreen(
                     datePickerState.selectedDateMillis?.let { tempDueDateMillis = it }
                     showDueDatePicker = false
                     showDueTimePicker = true // ডেডলাইনের সময় সিলেক্ট করার জন্য
-                }) { Text("পরবর্তী (সময়)", fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.btn_next_time), fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showDueDatePicker = false }) { Text("বাতিল", color = Color.Red) } }
-        ) { DatePicker(state = datePickerState, title = { Text(" ডেডলাইন নির্বাচন করুন", modifier = Modifier.padding(16.dp)) }) }
+            dismissButton = { TextButton(onClick = { showDueDatePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Red) } }
+        ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_select_deadline), modifier = Modifier.padding(16.dp)) }) }
     }
 
     // --- Due Time Picker (ডেডলাইনের সময়) ---
@@ -392,13 +390,13 @@ fun AddDebtCreditScreen(
                     dueDateMillis = calendar.timeInMillis
                     showDueTimePicker = false
                 }) {
-                    Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDueTimePicker = false }) { Text("বাতিল", color = Color.Red) }
+                TextButton(onClick = { showDueTimePicker = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Red) }
             },
-            title = { Text("ডেডলাইনের সময়", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.title_deadline_time), fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -407,6 +405,62 @@ fun AddDebtCreditScreen(
                     TimePicker(state = timePickerState)
                 }
             }
+        )
+    }
+}
+
+// --- Custom Always Floating Label Component ---
+@Composable
+private fun DebtCreditFloatingTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    readOnly: Boolean = false,
+    singleLine: Boolean = true,
+    textStyle: TextStyle = LocalTextStyle.current,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(16.dp),
+    themeColor: Color,
+    labelBackgroundColor: Color = Color.White
+) {
+    Box(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            readOnly = readOnly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!singleLine) Modifier.heightIn(min = 120.dp) else Modifier),
+            shape = shape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = themeColor,
+                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
+            ),
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon,
+            keyboardOptions = keyboardOptions,
+            singleLine = singleLine,
+            maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+            textStyle = textStyle
+        )
+
+        // Custom always-floating label text placed exactly over the border line
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = themeColor,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 16.dp)
+                .offset(y = (-8).dp)
+                .background(labelBackgroundColor) // Background color to match exactly with screen
+                .padding(horizontal = 4.dp)
         )
     }
 }

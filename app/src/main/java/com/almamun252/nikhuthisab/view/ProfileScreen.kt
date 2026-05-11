@@ -1,6 +1,9 @@
 package com.almamun252.nikhuthisab.view
 
+import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,23 +17,35 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    onLogout: () -> Unit = {} // <-- ১. এই প্যারামিটারটি যোগ করা হয়েছে
+    onLogout: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
 
-    // স্টেট মেইনটেইন করার জন্য (ভবিষ্যতে ViewModel থেকে আসবে)
+    // ল্যাঙ্গুয়েজ প্রেফারেন্স ইনিশিয়ালাইজ করা
+    val languagePreferences = remember { LanguagePreferences(context) }
+
+    // স্টেট মেইনটেইন করার জন্য
     var autoBackupEnabled by remember { mutableStateOf(true) }
+    var showLanguageSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -71,13 +86,13 @@ fun ProfileScreen(
 
                 // নাম এবং ইমেইল
                 Text(
-                    text = user?.displayName ?: "ব্যবহারকারীর নাম",
+                    text = user?.displayName ?: stringResource(R.string.default_user_name),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
                 )
                 Text(
-                    text = user?.email ?: "example@gmail.com",
+                    text = user?.email ?: stringResource(R.string.default_email),
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -88,16 +103,27 @@ fun ProfileScreen(
 
         // --- ব্যাকআপ এবং সেটিংস সেকশন ---
         Text(
-            text = "ডেটা ব্যাকআপ ও সেটিংস",
+            text = stringResource(R.string.data_backup_and_settings),
             modifier = Modifier.align(Alignment.Start).padding(start = 8.dp, bottom = 12.dp),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF64748B)
         )
 
+        // ভাষা পরিবর্তন সেটিংস
         SettingsItem(
-            title = "এখনই ব্যাকআপ নিন",
-            subtitle = "সব ডেটা সার্ভারে সেভ করুন",
+            title = stringResource(R.string.change_language),
+            subtitle = stringResource(R.string.change_language_desc),
+            icon = Icons.Rounded.Language,
+            iconColor = Color(0xFF10B981), // Emerald কালার
+            onClick = { showLanguageSheet = true }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        SettingsItem(
+            title = stringResource(R.string.backup_now),
+            subtitle = stringResource(R.string.backup_now_desc),
             icon = Icons.Rounded.CloudUpload,
             iconColor = Color(0xFF005088),
             onClick = { /* ব্যাকআপ ফাংশন কল হবে */ }
@@ -118,8 +144,8 @@ fun ProfileScreen(
                 Icon(Icons.Rounded.History, contentDescription = null, tint = Color(0xFF11CAA0))
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("রাত ১২টায় অটো ব্যাকআপ", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("প্রতিদিন নীরবে আপডেট হবে", fontSize = 12.sp, color = Color.Gray)
+                    Text(stringResource(R.string.auto_backup_title), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(stringResource(R.string.auto_backup_desc), fontSize = 12.sp, color = Color.Gray)
                 }
                 Switch(
                     checked = autoBackupEnabled,
@@ -134,7 +160,7 @@ fun ProfileScreen(
         Button(
             onClick = {
                 auth.signOut()
-                onLogout() // <-- ২. এখানে নেভিগেশন ডিলিট করে শুধু onLogout() কল করা হয়েছে
+                onLogout()
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
@@ -142,10 +168,74 @@ fun ProfileScreen(
         ) {
             Icon(Icons.Rounded.Logout, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("লগআউট করুন", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.logout), fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+    }
+
+    // --- ভাষা পরিবর্তনের Bottom Sheet ---
+    if (showLanguageSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        ModalBottomSheet(
+            onDismissRequest = { showLanguageSheet = false },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.select_language),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E293B)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.choose_your_preferred_language),
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // English Option
+                LanguageOptionCard(
+                    title = stringResource(R.string.english),
+                    subtitle = stringResource(R.string.english),
+                    onClick = {
+                        coroutineScope.launch {
+                            languagePreferences.saveLanguage("en")
+                            showLanguageSheet = false
+                            // ভাষা পরিবর্তনের পর রিস্টার্ট করা হচ্ছে
+                            (context as? Activity)?.recreate()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Bangla Option
+                LanguageOptionCard(
+                    title = stringResource(R.string.bangla),
+                    subtitle = stringResource(R.string.bengali),
+                    onClick = {
+                        coroutineScope.launch {
+                            languagePreferences.saveLanguage("bn")
+                            showLanguageSheet = false
+                            // ভাষা পরিবর্তনের পর রিস্টার্ট করা হচ্ছে
+                            (context as? Activity)?.recreate()
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -167,6 +257,32 @@ fun SettingsItem(title: String, subtitle: String, icon: ImageVector, iconColor: 
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
+        }
+    }
+}
+
+@Composable
+fun LanguageOptionCard(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    val themeColor = Color(0xFF10B981)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFF8FAFC))
+            .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Text(text = subtitle, fontSize = 14.sp, color = Color.Gray)
         }
     }
 }
