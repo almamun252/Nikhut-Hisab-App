@@ -1,21 +1,16 @@
 package com.almamun252.nikhuthisab.view
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,28 +19,7 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.CalendarToday
-import androidx.compose.material.icons.rounded.CardGiftcard
-import androidx.compose.material.icons.rounded.Category
-import androidx.compose.material.icons.rounded.Computer
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.Handshake
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.LocalHospital
-import androidx.compose.material.icons.rounded.MoneyOff
-import androidx.compose.material.icons.rounded.PictureAsPdf
-import androidx.compose.material.icons.rounded.Receipt
-import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.ShoppingBag
-import androidx.compose.material.icons.rounded.ShoppingCart
-import androidx.compose.material.icons.rounded.Store
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,22 +27,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.utils.PdfGenerator
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
@@ -78,6 +49,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -96,10 +68,10 @@ fun TransactionsScreen(
         isVisible = true
     }
 
-    // Filters State for Main List
+    // Filters State for Main List (ডিফল্ট মাস এখন 'This Month' করা হলো)
     var searchQuery by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("All") }
-    var selectedMonth by remember { mutableStateOf("All Time") }
+    var selectedMonth by remember { mutableStateOf("This Month") }
 
     var showCustomDateDialog by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -135,18 +107,20 @@ fun TransactionsScreen(
     var typeDropdownExpanded by remember { mutableStateOf(false) }
     var monthDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Dynamic Strings
     val typeOptions = mapOf(
-        "All" to "সব ধরন",
-        "Income" to "আয়",
-        "Expense" to "ব্যয়",
-        "Lending" to "পাওনা",
-        "Borrowing" to "দেনা"
+        "All" to stringResource(R.string.filter_all_type),
+        "Income" to stringResource(R.string.tab_income),
+        "Expense" to stringResource(R.string.tab_expense),
+        "Lending" to stringResource(R.string.tab_receivable),
+        "Borrowing" to stringResource(R.string.tab_payable)
     )
+
     val monthOptions = mapOf(
-        "All Time" to "সব সময়",
-        "This Month" to "এই মাস",
-        "Last Month" to "গত মাস",
-        "Custom" to "কাস্টম 📅"
+        "All Time" to stringResource(R.string.filter_all_time),
+        "This Month" to stringResource(R.string.filter_this_month),
+        "Last Month" to stringResource(R.string.filter_last_month),
+        "Custom" to stringResource(R.string.filter_custom)
     )
 
     // Main List Filter Logic
@@ -216,7 +190,7 @@ fun TransactionsScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("খুঁজুন...", color = Color.Gray, fontSize = 14.sp) },
+                        placeholder = { Text(stringResource(R.string.hint_search), color = Color.Gray, fontSize = 14.sp) },
                         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
@@ -248,9 +222,10 @@ fun TransactionsScreen(
                         // Category/Type Dropdown Icon
                         Box {
                             val typeTint = if (selectedType == "All") MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
-                            TopBarIcon(
+                            SequentialWigglingIcon(
                                 icon = Icons.Rounded.Category,
                                 tint = typeTint,
+                                iconIndex = 0, // প্রথম বাটন
                                 onClick = { typeDropdownExpanded = true }
                             )
                             DropdownMenu(
@@ -280,10 +255,11 @@ fun TransactionsScreen(
 
                         // Date/Time Dropdown Icon
                         Box {
-                            val dateTint = if (selectedMonth == "All Time") MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
-                            TopBarIcon(
+                            val dateTint = if (selectedMonth == "This Month" || selectedMonth == "All Time") MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
+                            SequentialWigglingIcon(
                                 icon = Icons.Rounded.Schedule,
                                 tint = dateTint,
+                                iconIndex = 1, // দ্বিতীয় বাটন
                                 onClick = { monthDropdownExpanded = true }
                             )
                             DropdownMenu(
@@ -315,7 +291,13 @@ fun TransactionsScreen(
                         }
 
                         // Download Icon
-                        WigglingDownloadIconButton(onClick = { showExportSheet = true })
+                        SequentialWigglingIcon(
+                            icon = Icons.Rounded.Download,
+                            tint = Color.White,
+                            iconIndex = 2, // তৃতীয় বাটন
+                            isGradientBg = true, // কালারফুল ব্যাকগ্রাউন্ড
+                            onClick = { showExportSheet = true }
+                        )
                     }
                 }
 
@@ -323,16 +305,16 @@ fun TransactionsScreen(
 
                 // --- Dialogs for Custom Date ---
                 if (showCustomDateDialog) {
-                    val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
-                    val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
-                    val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+                    val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
+                    val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_start_date)
+                    val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_end_date)
 
                     AlertDialog(
                         onDismissRequest = {
                             showCustomDateDialog = false
-                            if (selectedMonth == "Custom" && customStartDate == null && customEndDate == null) selectedMonth = "All Time"
+                            if (selectedMonth == "Custom" && customStartDate == null && customEndDate == null) selectedMonth = "This Month"
                         },
-                        title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+                        title = { Text(stringResource(R.string.title_select_date), fontWeight = FontWeight.Bold) },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 OutlinedButton(
@@ -355,8 +337,8 @@ fun TransactionsScreen(
                                 }
                             }
                         },
-                        confirmButton = { TextButton(onClick = { showCustomDateDialog = false; selectedMonth = "Custom" }) { Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold) } },
-                        dismissButton = { TextButton(onClick = { showCustomDateDialog = false; customStartDate = null; customEndDate = null; selectedMonth = "All Time" }) { Text("রিসেট", color = Color.Red) } }
+                        confirmButton = { TextButton(onClick = { showCustomDateDialog = false; selectedMonth = "Custom" }) { Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold) } },
+                        dismissButton = { TextButton(onClick = { showCustomDateDialog = false; customStartDate = null; customEndDate = null; selectedMonth = "This Month" }) { Text(stringResource(R.string.btn_reset), color = Color.Red) } }
                     )
                 }
 
@@ -364,18 +346,18 @@ fun TransactionsScreen(
                     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
                     DatePickerDialog(
                         onDismissRequest = { showStartDatePicker = false },
-                        confirmButton = { TextButton(onClick = { customStartDate = datePickerState.selectedDateMillis; showStartDatePicker = false }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) } },
-                        dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") } }
-                    ) { DatePicker(state = datePickerState, title = { Text(" শুরুর তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
+                        confirmButton = { TextButton(onClick = { customStartDate = datePickerState.selectedDateMillis; showStartDatePicker = false }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold) } },
+                        dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                    ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_start_date), modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
                 }
 
                 if (showEndDatePicker) {
                     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
                     DatePickerDialog(
                         onDismissRequest = { showEndDatePicker = false },
-                        confirmButton = { TextButton(onClick = { customEndDate = datePickerState.selectedDateMillis; showEndDatePicker = false }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) } },
-                        dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") } }
-                    ) { DatePicker(state = datePickerState, title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
+                        confirmButton = { TextButton(onClick = { customEndDate = datePickerState.selectedDateMillis; showEndDatePicker = false }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold) } },
+                        dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                    ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_end_date), modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
                 }
 
                 if (currentItems.isEmpty()) {
@@ -383,7 +365,7 @@ fun TransactionsScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("📭", fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("কোনো লেনদেন পাওয়া যায়নি!", color = Color.Gray, fontSize = 16.sp)
+                            Text(stringResource(R.string.msg_no_transactions), color = Color.Gray, fontSize = 16.sp)
                         }
                     }
                 } else {
@@ -392,11 +374,11 @@ fun TransactionsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 12.dp)
                     ) {
-                        items(currentItems, key = { it.id }) { tx ->
+                        items(currentItems.size, key = { currentItems[it].id }) { index ->
                             AllTransactionItemCard(
-                                transaction = tx,
+                                transaction = currentItems[index],
                                 modifier = Modifier.animateItemPlacement(tween(300)),
-                                onClick = { selectedTransaction = tx }
+                                onClick = { selectedTransaction = currentItems[index] }
                             )
                         }
                     }
@@ -412,11 +394,11 @@ fun TransactionsScreen(
                         TextButton(onClick = { if (currentPage > 0) currentPage-- }, enabled = currentPage > 0) {
                             Icon(Icons.Filled.ArrowBack, contentDescription = "Previous")
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("পূর্ববর্তী")
+                            Text(stringResource(R.string.btn_previous))
                         }
-                        Text(text = "পেজ ${currentPage + 1} / $totalPages", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = stringResource(R.string.label_page_info, currentPage + 1, totalPages), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(onClick = { if (currentPage < totalPages - 1) currentPage++ }, enabled = currentPage < totalPages - 1) {
-                            Text("পরবর্তী")
+                            Text(stringResource(R.string.btn_next))
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(Icons.Filled.ArrowForward, contentDescription = "Next")
                         }
@@ -457,7 +439,7 @@ fun TransactionsScreen(
 
         // --- PDF Export Bottom Sheet ---
         if (showExportSheet) {
-            val monthFormat = SimpleDateFormat("MMMM yyyy", Locale("bn", "BD"))
+            val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
             val recentMonths = remember {
                 (0..11).map {
                     val c = Calendar.getInstance()
@@ -487,32 +469,32 @@ fun TransactionsScreen(
                     if (isGeneratingPdf) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("রিপোর্ট তৈরি হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(stringResource(R.string.msg_generating_report), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     } else {
-                        Text("রিপোর্ট ডাউনলোড", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(stringResource(R.string.title_download_report), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // 1. Transaction Type
-                        Text("১. লেনদেনের ধরন", modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Text(stringResource(R.string.step_transaction_type), modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { PdfOptionButton(text = "সব", isSelected = exportType == "All", color = MaterialTheme.colorScheme.primary) { exportType = "All" } }
-                            item { PdfOptionButton(text = "আয়", isSelected = exportType == "Income", color = incomeColor) { exportType = "Income" } }
-                            item { PdfOptionButton(text = "ব্যয়", isSelected = exportType == "Expense", color = expenseColor) { exportType = "Expense" } }
-                            item { PdfOptionButton(text = "পাওনা", isSelected = exportType == "Lending", color = lendingColor) { exportType = "Lending" } }
-                            item { PdfOptionButton(text = "দেনা", isSelected = exportType == "Borrowing", color = borrowingColor) { exportType = "Borrowing" } }
+                            item { PdfOptionButton(text = stringResource(R.string.filter_all), isSelected = exportType == "All", color = MaterialTheme.colorScheme.primary) { exportType = "All" } }
+                            item { PdfOptionButton(text = stringResource(R.string.tab_income), isSelected = exportType == "Income", color = incomeColor) { exportType = "Income" } }
+                            item { PdfOptionButton(text = stringResource(R.string.tab_expense), isSelected = exportType == "Expense", color = expenseColor) { exportType = "Expense" } }
+                            item { PdfOptionButton(text = stringResource(R.string.tab_receivable), isSelected = exportType == "Lending", color = lendingColor) { exportType = "Lending" } }
+                            item { PdfOptionButton(text = stringResource(R.string.tab_payable), isSelected = exportType == "Borrowing", color = borrowingColor) { exportType = "Borrowing" } }
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // 2. Time Period
-                        Text("২. সময়কাল", modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Text(stringResource(R.string.step_time_period), modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { PdfOptionButton("চলতি মাস", exportPeriod == "This Month", MaterialTheme.colorScheme.primary) { exportPeriod = "This Month" } }
-                            item { PdfOptionButton("নির্দিষ্ট মাস", exportPeriod == "Specific Month", MaterialTheme.colorScheme.primary) { exportPeriod = "Specific Month" } }
-                            item { PdfOptionButton("কাস্টম ডেট", exportPeriod == "Custom", MaterialTheme.colorScheme.primary) { exportPeriod = "Custom" } }
-                            item { PdfOptionButton("শুরু থেকে আজ", exportPeriod == "All Time", MaterialTheme.colorScheme.primary) { exportPeriod = "All Time" } }
+                            item { PdfOptionButton(stringResource(R.string.filter_this_month), exportPeriod == "This Month", MaterialTheme.colorScheme.primary) { exportPeriod = "This Month" } }
+                            item { PdfOptionButton(stringResource(R.string.filter_specific_month), exportPeriod == "Specific Month", MaterialTheme.colorScheme.primary) { exportPeriod = "Specific Month" } }
+                            item { PdfOptionButton(stringResource(R.string.filter_custom_date), exportPeriod == "Custom", MaterialTheme.colorScheme.primary) { exportPeriod = "Custom" } }
+                            item { PdfOptionButton(stringResource(R.string.filter_all_time_report), exportPeriod == "All Time", MaterialTheme.colorScheme.primary) { exportPeriod = "All Time" } }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -535,13 +517,13 @@ fun TransactionsScreen(
                                 }
                             }
                         } else if (exportPeriod == "Custom") {
-                            val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
+                            val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = { showExportStartDatePicker = true }, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp)) {
-                                    Text(exportStartDate?.let { sdf.format(Date(it)) } ?: "শুরু", fontSize = 13.sp)
+                                    Text(exportStartDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.title_start_date), fontSize = 13.sp)
                                 }
                                 OutlinedButton(onClick = { showExportEndDatePicker = true }, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp)) {
-                                    Text(exportEndDate?.let { sdf.format(Date(it)) } ?: "শেষ", fontSize = 13.sp)
+                                    Text(exportEndDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.title_end_date), fontSize = 13.sp)
                                 }
                             }
                         }
@@ -549,12 +531,12 @@ fun TransactionsScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // 3. Category Filter
-                        Text("৩. ক্যাটাগরি (ঐচ্ছিক)", modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Text(stringResource(R.string.step_category_optional), modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
                         var catExpanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(expanded = catExpanded, onExpandedChange = { catExpanded = !catExpanded }) {
                             OutlinedTextField(
-                                value = if (exportCategory == "All") "সব ক্যাটাগরি" else exportCategory,
+                                value = if (exportCategory == "All") stringResource(R.string.filter_all_categories) else exportCategory,
                                 onValueChange = {}, readOnly = true,
                                 leadingIcon = { Icon(Icons.Rounded.FilterList, contentDescription = null) },
                                 modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -563,7 +545,7 @@ fun TransactionsScreen(
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             ExposedDropdownMenu(expanded = catExpanded, onDismissRequest = { catExpanded = false }) {
-                                DropdownMenuItem(text = { Text("সব ক্যাটাগরি", fontWeight = FontWeight.Bold) }, onClick = { exportCategory = "All"; catExpanded = false })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.filter_all_categories), fontWeight = FontWeight.Bold) }, onClick = { exportCategory = "All"; catExpanded = false })
                                 availableCategories.forEach { cat ->
                                     DropdownMenuItem(text = { Text(cat) }, onClick = { exportCategory = cat; catExpanded = false })
                                 }
@@ -602,28 +584,34 @@ fun TransactionsScreen(
                                         typeMatch && catMatch && timeMatch
                                     }.sortedBy { it.date } // Chronological for PDF
 
+                                    val reportIncStr = context.getString(R.string.report_income)
+                                    val reportExpStr = context.getString(R.string.report_expense)
+                                    val reportLenStr = context.getString(R.string.report_lending)
+                                    val reportBorStr = context.getString(R.string.report_borrowing)
+                                    val reportAllStr = context.getString(R.string.report_all_transactions)
+
                                     val title = when (exportType) {
-                                        "Income" -> "আয় রিপোর্ট"
-                                        "Expense" -> "ব্যয় রিপোর্ট"
-                                        "Lending" -> "পাওনা রিপোর্ট"
-                                        "Borrowing" -> "দেনা রিপোর্ট"
-                                        else -> "সকল লেনদেন রিপোর্ট"
+                                        "Income" -> reportIncStr
+                                        "Expense" -> reportExpStr
+                                        "Lending" -> reportLenStr
+                                        "Borrowing" -> reportBorStr
+                                        else -> reportAllStr
                                     } + if (exportCategory != "All") " ($exportCategory)" else ""
 
                                     val dateStr = when (exportPeriod) {
-                                        "This Month" -> "চলতি মাস"
+                                        "This Month" -> context.getString(R.string.filter_this_month)
                                         "Specific Month" -> exportSpecificMonth
                                         "Custom" -> {
-                                            val sdf = SimpleDateFormat("dd MMM yyyy", Locale("bn", "BD"))
+                                            val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                                             val s = exportStartDate?.let { sdf.format(Date(it)) } ?: ""
-                                            val e = exportEndDate?.let { sdf.format(Date(it)) } ?: "আজ"
-                                            if (s.isNotEmpty()) "$s হতে $e" else "কাস্টম রেঞ্জ"
+                                            val e = exportEndDate?.let { sdf.format(Date(it)) } ?: context.getString(R.string.today)
+                                            if (s.isNotEmpty()) "$s ${context.getString(R.string.to)} $e" else context.getString(R.string.report_custom_range)
                                         }
-                                        else -> "শুরু থেকে আজ পর্যন্ত"
+                                        else -> context.getString(R.string.report_all_time)
                                     }
 
-                                    val timeStamp = SimpleDateFormat("dd-MMM-yyyy_hh-mm-a", Locale("bn", "BD")).format(Date())
-                                    val customFileName = "হিসাব-$timeStamp.pdf"
+                                    val timeStamp = SimpleDateFormat("dd-MMM-yyyy_hh-mm-a", Locale.US).format(Date())
+                                    val customFileName = "${context.getString(R.string.report_file_prefix)}-$timeStamp.pdf"
 
                                     PdfGenerator.generatePdf(
                                         context = context,
@@ -641,7 +629,7 @@ fun TransactionsScreen(
                         ) {
                             Icon(Icons.Rounded.Download, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("PDF তৈরি ও ডাউনলোড করুন", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.btn_generate_download_pdf), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -653,106 +641,109 @@ fun TransactionsScreen(
             val datePickerState = rememberDatePickerState(initialSelectedDateMillis = exportStartDate ?: System.currentTimeMillis())
             DatePickerDialog(
                 onDismissRequest = { showExportStartDatePicker = false },
-                confirmButton = { TextButton(onClick = { exportStartDate = datePickerState.selectedDateMillis; showExportStartDatePicker = false }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) } },
-                dismissButton = { TextButton(onClick = { showExportStartDatePicker = false }) { Text("বাতিল") } }
-            ) { DatePicker(state = datePickerState, title = { Text(" শুরুর তারিখ", modifier = Modifier.padding(16.dp)) }) }
+                confirmButton = { TextButton(onClick = { exportStartDate = datePickerState.selectedDateMillis; showExportStartDatePicker = false }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold) } },
+                dismissButton = { TextButton(onClick = { showExportStartDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_start_date), modifier = Modifier.padding(16.dp)) }) }
         }
         if (showExportEndDatePicker) {
             val datePickerState = rememberDatePickerState(initialSelectedDateMillis = exportEndDate ?: System.currentTimeMillis())
             DatePickerDialog(
                 onDismissRequest = { showExportEndDatePicker = false },
-                confirmButton = { TextButton(onClick = { exportEndDate = datePickerState.selectedDateMillis; showExportEndDatePicker = false }) { Text("ঠিক আছে", fontWeight = FontWeight.Bold) } },
-                dismissButton = { TextButton(onClick = { showExportEndDatePicker = false }) { Text("বাতিল") } }
-            ) { DatePicker(state = datePickerState, title = { Text(" শেষের তারিখ", modifier = Modifier.padding(16.dp)) }) }
+                confirmButton = { TextButton(onClick = { exportEndDate = datePickerState.selectedDateMillis; showExportEndDatePicker = false }) { Text(stringResource(R.string.btn_ok), fontWeight = FontWeight.Bold) } },
+                dismissButton = { TextButton(onClick = { showExportEndDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_end_date), modifier = Modifier.padding(16.dp)) }) }
         }
     }
 }
 
 // ----------------------------------------------------------------------
-// টপ বারের সাধারণ আইকনের জন্য কাস্টম কম্পোজেবল
+// ৩টি বাটনে সিকোয়েনশিয়াল অ্যানিমেশনের জন্য কাস্টম কম্পোজেবল
 // ----------------------------------------------------------------------
 @Composable
-fun TopBarIcon(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+fun SequentialWigglingIcon(
+    icon: ImageVector,
     tint: Color,
+    iconIndex: Int, // 0 = Category, 1 = Date, 2 = Download
+    isGradientBg: Boolean = false,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(tint.copy(alpha = 0.1f))
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-    }
-}
+    val infiniteTransition = rememberInfiniteTransition(label = "sequential_wiggle_$iconIndex")
 
-// ----------------------------------------------------------------------
-// নড়াচড়া করা (Wiggling) আকর্ষণীয় ডাউনলোড বাটন কম্পোজেবল
-// ----------------------------------------------------------------------
-@Composable
-fun WigglingDownloadIconButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val infiniteTransition = rememberInfiniteTransition(label = "wiggle_transition")
-
-    // রোটেশন অ্যানিমেশন
+    // ৪ সেকেন্ডের একটি সাইকেল, যেখানে প্রতি বাটন তার ইনডেক্স অনুযায়ী আলাদা সময়ে নড়বে
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
-                durationMillis = 3500
+                durationMillis = 4000
+                val start = iconIndex * 500 // প্রথমটা ০ms, দ্বিতীয়টা ৫০০ms, তৃতীয়টা ১০০০ms এ শুরু হবে
+
                 0f at 0
-                0f at 2800        // ৮০% সময় স্থির থাকবে
-                -15f at 2950      // তারপর নড়বে
-                15f at 3100
-                -15f at 3250
-                0f at 3500
+                if (start > 0) { 0f at start }
+
+                -15f at start + 100
+                15f at start + 250
+                -15f at start + 400
+                0f at start + 500
+
+                0f at 4000
             },
             repeatMode = RepeatMode.Restart
         ),
-        label = "rotation_anim"
+        label = "rotation_anim_$iconIndex"
     )
 
-    // স্কেল অ্যানিমেশন (নড়ার সময় একটু বড় হবে)
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
-                durationMillis = 3500
+                durationMillis = 4000
+                val start = iconIndex * 500
+
                 1f at 0
-                1f at 2800
-                1.15f at 2950
-                1.15f at 3100
-                1.15f at 3250
-                1f at 3500
+                if (start > 0) { 1f at start }
+
+                1.15f at start + 150
+                1.15f at start + 350
+                1f at start + 500
+
+                1f at 4000
             },
             repeatMode = RepeatMode.Restart
         ),
-        label = "scale_anim"
+        label = "scale_anim_$iconIndex"
     )
 
-    IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .size(40.dp) // Size updated to match other icons perfectly
+    Box(
+        modifier = Modifier
+            .size(40.dp)
             .rotate(rotation)
             .scale(scale)
-            .shadow(6.dp, CircleShape) // আকর্ষণীয় শ্যাডো
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF3B82F6), Color(0xFF6366F1)) // ব্লু-ইন্ডিগো গ্রেডিয়েন্ট
-                ),
-                shape = CircleShape
+            .then(
+                if (isGradientBg) {
+                    Modifier
+                        .shadow(6.dp, CircleShape)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(Color(0xFF3B82F6), Color(0xFF6366F1))
+                            ),
+                            shape = CircleShape
+                        )
+                } else {
+                    Modifier
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = 0.1f))
+                }
             )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Rounded.Download,
-            contentDescription = "ডাউনলোড রিপোর্ট",
-            tint = Color.White,
-            modifier = Modifier.size(20.dp) // Icon size adjusted
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isGradientBg) Color.White else tint,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -792,7 +783,7 @@ private fun AllTransactionItemCard(
         else -> Pair(Color.Gray, "")
     }
 
-    val dateString = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale("bn", "BD")).format(Date(transaction.date))
+    val dateString = SimpleDateFormat("dd MMM, yyyy  •  hh:mm a", Locale.getDefault()).format(Date(transaction.date))
 
     Card(
         modifier = modifier
@@ -844,7 +835,7 @@ private fun AllTransactionItemCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = if (titleText.isNotBlank() && titleText != "-") titleText else categoryText,
-                            fontSize = 15.sp, // Reduced from 16.sp
+                            fontSize = 14.sp, // Reduced from 16.sp
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1E293B),
                             maxLines = 1,
@@ -900,12 +891,12 @@ private fun AllTransactionItemCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(themeColor)
-                                .padding(horizontal = 6.dp, vertical = 0.dp),
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = dateString,
-                                fontSize = 9.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
@@ -943,8 +934,8 @@ private fun AllTransactionDetailsSheet(
         else -> Triple(Color.Gray, Color(0xFFF1F5F9), "")
     }
 
-    val dateString = SimpleDateFormat("dd MMMM, yyyy", Locale("bn", "BD")).format(Date(transaction.date))
-    val timeString = SimpleDateFormat("hh:mm a", Locale("bn", "BD")).format(Date(transaction.date))
+    val dateString = SimpleDateFormat("dd MMMM, yyyy", Locale.getDefault()).format(Date(transaction.date))
+    val timeString = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(transaction.date))
 
     Column(
         modifier = Modifier
@@ -992,14 +983,14 @@ private fun AllTransactionDetailsSheet(
 
         // Details list
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            AllTxDetailRow(icon = Icons.Rounded.Category, label = "ক্যাটাগরি", value = transaction.category, iconTint = themeColor)
-            AllTxDetailRow(icon = Icons.Rounded.CalendarToday, label = "তারিখ", value = dateString, iconTint = themeColor)
-            AllTxDetailRow(icon = Icons.Rounded.Schedule, label = "সময়", value = timeString, iconTint = themeColor)
+            AllTxDetailRow(icon = Icons.Rounded.Category, label = stringResource(R.string.label_category), value = transaction.category, iconTint = themeColor)
+            AllTxDetailRow(icon = Icons.Rounded.CalendarToday, label = stringResource(R.string.label_date_only), value = dateString, iconTint = themeColor)
+            AllTxDetailRow(icon = Icons.Rounded.Schedule, label = stringResource(R.string.label_time_only), value = timeString, iconTint = themeColor)
 
             // Note
             val note = try { transaction.javaClass.getMethod("getNote").invoke(transaction) as? String } catch (e: Exception) { null }
             if (!note.isNullOrBlank()) {
-                AllTxDetailRow(icon = Icons.Rounded.Info, label = "নোট", value = note, iconTint = themeColor)
+                AllTxDetailRow(icon = Icons.Rounded.Info, label = stringResource(R.string.label_note), value = note, iconTint = themeColor)
             }
         }
 
@@ -1019,7 +1010,7 @@ private fun AllTransactionDetailsSheet(
             ) {
                 Icon(Icons.Filled.Edit, contentDescription = "Edit")
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("এডিট করুন", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.btn_edit), fontWeight = FontWeight.Bold)
             }
 
             Button(
@@ -1030,7 +1021,7 @@ private fun AllTransactionDetailsSheet(
             ) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("মুছে ফেলুন", fontWeight = FontWeight.Bold, color = Color.White)
+                Text(stringResource(R.string.btn_delete), fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }
@@ -1064,20 +1055,21 @@ private fun AllTxDetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector
 // ----------------------------------------------------------------------
 @Composable
 fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
+    // English and Bangla categories checking for robust backward compatibility
     return when (category) {
-        "খাবার" -> Icons.Rounded.Restaurant
-        "যাতায়াত" -> Icons.Rounded.DirectionsCar
-        "বাসা ভাড়া" -> Icons.Rounded.Home
-        "শপিং" -> Icons.Rounded.ShoppingCart
-        "বিল" -> Icons.Rounded.Receipt
-        "চিকিৎসা" -> Icons.Rounded.LocalHospital
-        "শিক্ষা" -> Icons.Rounded.School
-        "বেতন" -> Icons.Rounded.AccountBalanceWallet
-        "ফ্রিল্যান্সিং" -> Icons.Rounded.Computer
-        "উপহার" -> Icons.Rounded.CardGiftcard
-        "ব্যবসা" -> Icons.Rounded.Store
-        "ধার দিয়েছি", "পাওনা" -> Icons.Rounded.Handshake
-        "ধার নিয়েছি", "দেনা" -> Icons.Rounded.MoneyOff
+        "খাবার", "Food" -> Icons.Rounded.Restaurant
+        "যাতায়াত", "Transport" -> Icons.Rounded.DirectionsCar
+        "বাসা ভাড়া", "Rent" -> Icons.Rounded.Home
+        "শপিং", "Shopping" -> Icons.Rounded.ShoppingCart
+        "বিল", "Bills" -> Icons.Rounded.Receipt
+        "চিকিৎসা", "Health" -> Icons.Rounded.LocalHospital
+        "শিক্ষা", "Education" -> Icons.Rounded.School
+        "বেতন", "Salary" -> Icons.Rounded.AccountBalanceWallet
+        "ফ্রিল্যান্সিং", "Freelance", "Freelancing" -> Icons.Rounded.Computer
+        "উপহার", "Gift" -> Icons.Rounded.CardGiftcard
+        "ব্যবসা", "Business" -> Icons.Rounded.Store
+        "ধার দিয়েছি", "পাওনা", "Lent", "Receivable" -> Icons.Rounded.Handshake
+        "ধার নিয়েছি", "দেনা", "Borrowed", "Payable", "ধার/লোন", "Loan/Borrow" -> Icons.Rounded.MoneyOff
         else -> Icons.Rounded.Category
     }
 }

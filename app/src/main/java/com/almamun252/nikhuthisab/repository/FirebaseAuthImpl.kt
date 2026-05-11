@@ -1,5 +1,7 @@
 package com.almamun252.nikhuthisab.repository
 
+import android.content.Context
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.AppUser
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -9,6 +11,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthImpl(
+    private val context: Context, // ডাইনামিক স্ট্রিং এর জন্য Context যুক্ত করা হলো
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : AuthRepository {
 
@@ -49,7 +52,8 @@ class FirebaseAuthImpl(
                     )
                 )
             } else {
-                Result.failure(Exception("ইউজার পাওয়া যায়নি!"))
+                // এখানে ডাইনামিক স্ট্রিং ব্যবহার করা হয়েছে
+                Result.failure(Exception(context.getString(R.string.msg_user_not_found)))
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -2,10 +2,7 @@ package com.almamun252.nikhuthisab.view
 
 import android.widget.Toast
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,16 +13,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -39,6 +33,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource // ডাইনামিক স্ট্রিং এর জন্য সবচেয়ে জরুরি
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R // আপনার অ্যাপের রিসোর্স ফোল্ডার
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import kotlinx.coroutines.delay
@@ -60,11 +56,7 @@ import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.spring
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +71,14 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
         isVisible = true
     }
 
-    var selectedDateFilter by remember { mutableStateOf("চলতি মাস") }
+    // Dynamic Filter Strings
+    val filterAllTime = stringResource(R.string.filter_all_time)
+    val filterThisMonth = stringResource(R.string.filter_this_month)
+    val filterLastMonth = stringResource(R.string.filter_last_month)
+    val filterLast6Months = stringResource(R.string.filter_last_6_months)
+    val filterCustomRange = stringResource(R.string.filter_custom_range)
+
+    var selectedDateFilter by remember { mutableStateOf(filterThisMonth) }
     var showCustomDateDialog by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
@@ -96,18 +95,18 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
         val currYear = currentCal.get(Calendar.YEAR)
 
         when (selectedDateFilter) {
-            "সব সময়" -> true
-            "চলতি মাস" -> txMonth == currMonth && txYear == currYear
-            "গত মাস" -> {
+            filterAllTime -> true
+            filterThisMonth -> txMonth == currMonth && txYear == currYear
+            filterLastMonth -> {
                 val lastMonth = if (currMonth == 0) 11 else currMonth - 1
                 val lastMonthYear = if (currMonth == 0) currYear - 1 else currYear
                 txMonth == lastMonth && txYear == lastMonthYear
             }
-            "গত ৬ মাস" -> {
+            filterLast6Months -> {
                 val sixMonthsAgo = Calendar.getInstance().apply { add(Calendar.MONTH, -6) }.timeInMillis
                 tx.date >= sixMonthsAgo
             }
-            "কাস্টম রেঞ্জ" -> {
+            filterCustomRange -> {
                 val start = customStartDate ?: 0L
                 val end = customEndDate?.let { it + 86400000L - 1L } ?: Long.MAX_VALUE
                 tx.date in start..end
@@ -150,21 +149,21 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
                                 todayCal.get(Calendar.DAY_OF_YEAR) == dueCal.get(Calendar.DAY_OF_YEAR)
 
                         val diffMillis = dueCal.timeInMillis - currentMillis
-                        val name = if (tx.title.isNotEmpty() && tx.title != "-") tx.title else "অজ্ঞাত"
+                        val name = if (tx.title.isNotEmpty() && tx.title != "-") tx.title else context.getString(R.string.notif_unknown_person)
 
                         if (diffMillis < 0 && !isToday) {
-                            val msg = if (tx.type == "Lending") "সতর্কতা: $name এর ৳${amountDue.toInt()} দেওয়ার সময় পার হয়ে গেছে!"
-                            else "সতর্কতা: $name কে ৳${amountDue.toInt()} পরিশোধ করার সময় পার হয়ে গেছে!"
+                            val msg = if (tx.type == "Lending") context.getString(R.string.alert_overdue_lending, name, amountDue.toInt())
+                            else context.getString(R.string.alert_overdue_borrowing, name, amountDue.toInt())
                             alerts.add(AlertItem(msg, AlertType.OVERDUE))
                         } else if (isToday) {
-                            val msg = if (tx.type == "Lending") "আজ $name এর ৳${amountDue.toInt()} দেওয়ার কথা"
-                            else "আজ $name কে ৳${amountDue.toInt()} দিতে হবে"
+                            val msg = if (tx.type == "Lending") context.getString(R.string.alert_today_lending, name, amountDue.toInt())
+                            else context.getString(R.string.alert_today_borrowing, name, amountDue.toInt())
                             alerts.add(AlertItem(msg, AlertType.TODAY))
                         } else if (diffMillis in 0..(86400000L * 3)) { // আগামী ৩ দিন
-                            val sdf = SimpleDateFormat("dd MMM", Locale("bn", "BD"))
+                            val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
                             val dateStr = sdf.format(Date(dueDate))
-                            val msg = if (tx.type == "Lending") "আগামী $dateStr তারিখে $name ৳${amountDue.toInt()} দেবেন"
-                            else "আগামী $dateStr তারিখে $name কে ৳${amountDue.toInt()} দিতে হবে"
+                            val msg = if (tx.type == "Lending") context.getString(R.string.alert_upcoming_lending, name, amountDue.toInt(), dateStr)
+                            else context.getString(R.string.alert_upcoming_borrowing, name, amountDue.toInt(), dateStr)
                             alerts.add(AlertItem(msg, AlertType.UPCOMING))
                         }
                     }
@@ -191,7 +190,7 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
             DateRangeFilter(
                 selectedOption = selectedDateFilter,
                 onOptionSelected = { option ->
-                    if (option == "কাস্টম রেঞ্জ") {
+                    if (option == filterCustomRange) {
                         showCustomDateDialog = true
                     } else {
                         selectedDateFilter = option
@@ -201,13 +200,13 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
 
             // --- Custom Date Range Dialogs ---
             if (showCustomDateDialog) {
-                val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
-                val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: "শুরুর তারিখ নির্বাচন করুন"
-                val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: "শেষের তারিখ নির্বাচন করুন"
+                val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
+                val startStr = customStartDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_start_date)
+                val endStr = customEndDate?.let { sdf.format(Date(it)) } ?: stringResource(R.string.hint_select_end_date)
 
                 AlertDialog(
                     onDismissRequest = { showCustomDateDialog = false },
-                    title = { Text("তারিখ নির্বাচন করুন", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.title_select_date), fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             OutlinedButton(
@@ -230,25 +229,25 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
                             }
                         }
                     },
-                    confirmButton = { TextButton(onClick = { showCustomDateDialog = false; selectedDateFilter = "কাস্টম রেঞ্জ" }) { Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold) } },
-                    dismissButton = { TextButton(onClick = { showCustomDateDialog = false; customStartDate = null; customEndDate = null }) { Text("বাতিল", color = Color.Red) } }
+                    confirmButton = { TextButton(onClick = { showCustomDateDialog = false; selectedDateFilter = filterCustomRange }) { Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold) } },
+                    dismissButton = { TextButton(onClick = { showCustomDateDialog = false; customStartDate = null; customEndDate = null }) { Text(stringResource(R.string.btn_cancel), color = Color.Red) } }
                 )
             }
             if (showStartDatePicker) {
                 val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customStartDate ?: System.currentTimeMillis())
                 DatePickerDialog(
                     onDismissRequest = { showStartDatePicker = false },
-                    confirmButton = { TextButton(onClick = { customStartDate = datePickerState.selectedDateMillis; showStartDatePicker = false }) { Text("ঠিক আছে") } },
-                    dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("বাতিল") } }
-                ) { DatePicker(state = datePickerState) }
+                    confirmButton = { TextButton(onClick = { customStartDate = datePickerState.selectedDateMillis; showStartDatePicker = false }) { Text(stringResource(R.string.btn_ok)) } },
+                    dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_start_date), modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
             }
             if (showEndDatePicker) {
                 val datePickerState = rememberDatePickerState(initialSelectedDateMillis = customEndDate ?: System.currentTimeMillis())
                 DatePickerDialog(
                     onDismissRequest = { showEndDatePicker = false },
-                    confirmButton = { TextButton(onClick = { customEndDate = datePickerState.selectedDateMillis; showEndDatePicker = false }) { Text("ঠিক আছে") } },
-                    dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("বাতিল") } }
-                ) { DatePicker(state = datePickerState) }
+                    confirmButton = { TextButton(onClick = { customEndDate = datePickerState.selectedDateMillis; showEndDatePicker = false }) { Text(stringResource(R.string.btn_ok)) } },
+                    dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                ) { DatePicker(state = datePickerState, title = { Text(" " + stringResource(R.string.title_end_date), modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) }) }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -274,13 +273,13 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
                             Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("হিসাব শুরু করুন!", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(stringResource(R.string.title_start_tracking), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("আপনার প্রথম আয় বা ব্যয় যোগ করতে নিচের বাটনগুলোতে ক্লিক করুন।", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 22.sp)
+                        Text(stringResource(R.string.desc_start_tracking), fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 22.sp)
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ShortcutCard(title = "আয় যোগ", icon = Icons.Rounded.Add, color = Color(0xFF10B981), modifier = Modifier.weight(1f)) { navController.navigate("add_income") }
-                            ShortcutCard(title = "ব্যয় যোগ", icon = Icons.Rounded.Add, color = Color(0xFFF43F5E), modifier = Modifier.weight(1f)) { navController.navigate("add_expense") }
+                            ShortcutCard(title = stringResource(R.string.btn_add_income_short), icon = Icons.Rounded.Add, color = Color(0xFF10B981), modifier = Modifier.weight(1f)) { navController.navigate("add_income") }
+                            ShortcutCard(title = stringResource(R.string.btn_add_expense_short), icon = Icons.Rounded.Add, color = Color(0xFFF43F5E), modifier = Modifier.weight(1f)) { navController.navigate("add_expense") }
                         }
                     }
                 }
@@ -313,8 +312,6 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
                 realPayable = realPayable
             )
 
-            // 🔥 স্পেসারটি এখান থেকে ডিলিট করা হয়েছে!
-
             if (allTransactions.isNotEmpty()) {
                 QuickShortcutsSection(navController = navController)
             }
@@ -327,7 +324,6 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
         }
     }
 }
-
 // ১. ডেটা ক্লাস
 data class SummaryCardItem(val title: String, val amount: Float, val color: Color)
 
@@ -343,11 +339,11 @@ fun FinancialSummarySection(
     var expanded by remember { mutableStateOf(false) }
 
     val summaryItems = listOf(
-        SummaryCardItem("মোট আয়", totalIncome, Color(0xFFFFCA28)),
-        SummaryCardItem("মোট ব্যয়", totalExpense, Color(0xFFFF7043)),
-        SummaryCardItem("বর্তমান ব্যালেন্স", balance, Color(0xFF26C6DA)),
-        SummaryCardItem("মোট পাওনা", realReceivable, Color(0xFF10B981)),
-        SummaryCardItem("মোট ঋণ", realPayable, Color(0xFFF43F5E))
+        SummaryCardItem(stringResource(R.string.label_total_income), totalIncome, Color(0xFFFFCA28)),
+        SummaryCardItem(stringResource(R.string.label_total_expense), totalExpense, Color(0xFFFF7043)),
+        SummaryCardItem(stringResource(R.string.label_current_balance), balance, Color(0xFF26C6DA)),
+        SummaryCardItem(stringResource(R.string.label_total_receivable), realReceivable, Color(0xFF10B981)),
+        SummaryCardItem(stringResource(R.string.label_total_loan), realPayable, Color(0xFFF43F5E))
     )
 
     val columns = 3
@@ -396,14 +392,14 @@ fun FinancialSummarySection(
             // 🔥 Layout Fixed: Box alignment instead of hardcoded offset
             Box(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.BottomCenter // বাটনটি সবসময় নিচে ফিক্সড থাকবে
+                contentAlignment = Alignment.BottomCenter // বাটনটি সবসময় নিচে ফিক্সড থাকবে
             ) {
 
                 // Content Area
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (expanded) Dp.Unspecified else 85.dp) // সঙ্কুচিত অবস্থায় সুন্দর একটি হাইট
+                        .height(if (expanded) Dp.Unspecified else 85.dp) // সঙ্কুচিত অবস্থায় সুন্দর একটি হাইট
                         .clipToBounds()
                 ) {
 
@@ -411,7 +407,7 @@ fun FinancialSummarySection(
                         modifier = Modifier
                             .graphicsLayer { alpha = alphaValue }
                             .blur(blur)
-                            // এক্সপ্যান্ড হলে বাটনের জন্য জায়গা তৈরি করতে নিচে padding দেওয়া হলো
+                            // এক্সপ্যান্ড হলে বাটনের জন্য জায়গা তৈরি করতে নিচে padding দেওয়া হলো
                             .padding(bottom = if (expanded) 48.dp else 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -481,7 +477,7 @@ fun FinancialSummarySection(
                         Row(verticalAlignment = Alignment.CenterVertically) {
 
                             Text(
-                                text = if (state) "বন্ধ করুন" else "আরো দেখুন",
+                                text = if (state) stringResource(R.string.btn_show_less) else stringResource(R.string.btn_show_more),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -551,23 +547,36 @@ fun SummaryMiniCard(
             Text(
                 text = title,
                 color = Color.Gray,
-                fontSize = 11.sp
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "৳ $amount",
+                // দশমিক এড়ানোর জন্য toInt() ব্যবহার করা হয়েছে
+                text = "৳ ${amount.toInt()}",
                 color = color,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateRangeFilter(selectedOption: String, onOptionSelected: (String) -> Unit) {
-    val options = listOf("সব সময়", "চলতি মাস", "গত মাস", "গত ৬ মাস", "কাস্টম রেঞ্জ")
+    // হার্ডকোড করা স্ট্রিং এর বদলে stringResource ব্যবহার করা হয়েছে
+    val options = listOf(
+        stringResource(R.string.filter_all_time),
+        stringResource(R.string.filter_this_month),
+        stringResource(R.string.filter_last_month),
+        stringResource(R.string.filter_last_6_months),
+        stringResource(R.string.filter_custom_range)
+    )
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -614,7 +623,6 @@ fun DateRangeFilter(selectedOption: String, onOptionSelected: (String) -> Unit) 
         }
     }
 }
-
 @Composable
 fun SectionTitle(title: String) {
     Box(
@@ -648,7 +656,8 @@ fun TopExpensesSection(transactions: List<Transaction>) {
     val totalExpense = transactions.filter { tx: Transaction -> tx.type == "Expense" }.map { it.amount }.sum().toFloat()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        SectionTitle(title = "শীর্ষ ৫ খরচের খাত")
+        // হার্ডকোড করা স্ট্রিং এর বদলে stringResource ব্যবহার করা হয়েছে
+        SectionTitle(title = stringResource(R.string.title_top_5_expenses))
         Spacer(modifier = Modifier.height(24.dp))
 
         val topExpenses = transactions
@@ -807,14 +816,19 @@ fun CustomVerticalBar(
         }
     }
 }
-
 @Composable
 fun RecentTransactionsSection(transactions: List<Transaction>) {
-    var selectedFilter by remember { mutableStateOf("সব") }
-    val filterOptions = listOf("সব", "আয়", "ব্যয়", "দেনা-পাওনা")
+    // স্ট্রিং রিসোর্স থেকে মানগুলো নিয়ে ভ্যারিয়েবলে রাখা হলো
+    val filterAll = stringResource(R.string.filter_all)
+    val filterIncome = stringResource(R.string.tab_income)
+    val filterExpense = stringResource(R.string.tab_expense)
+    val filterDebtCredit = stringResource(R.string.shortcut_debt_credit)
+
+    var selectedFilter by remember { mutableStateOf(filterAll) }
+    val filterOptions = listOf(filterAll, filterIncome, filterExpense, filterDebtCredit)
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        SectionTitle(title = "সাম্প্রতিক লেনদেন")
+        SectionTitle(title = stringResource(R.string.title_recent_transactions))
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
@@ -848,10 +862,11 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
         Spacer(modifier = Modifier.height(20.dp))
 
         val filteredTransactions = transactions.filter { tx: Transaction ->
+            // এখানে হার্ডকোড স্ট্রিং এর বদলে ভ্যারিয়েবল চেক করা হচ্ছে
             when (selectedFilter) {
-                "আয়" -> tx.type == "Income"
-                "ব্যয়" -> tx.type == "Expense"
-                "দেনা-পাওনা" -> tx.type == "Lending" || tx.type == "Borrowing"
+                filterIncome -> tx.type == "Income"
+                filterExpense -> tx.type == "Expense"
+                filterDebtCredit -> tx.type == "Lending" || tx.type == "Borrowing"
                 else -> true
             }
         }.sortedByDescending { it.date }.take(10)
@@ -859,7 +874,7 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
         if (filteredTransactions.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "এই সময়ে কোনো লেনদেন হয়নি।",
+                    text = stringResource(R.string.msg_no_transactions_period),
                     color = Color.Gray,
                     fontSize = 15.sp
                 )
@@ -1090,15 +1105,16 @@ fun QuickShortcutsSection(navController: NavController) {
     val context = LocalContext.current
     var showMoreShortcuts by remember { mutableStateOf(false) }
 
+    // হার্ডকোড স্ট্রিং এর বদলে stringResource ব্যবহার করা হয়েছে
     val shortcuts = listOf(
-        GridShortcut("লেনদেন", Icons.Rounded.ReceiptLong, MaterialTheme.colorScheme.primary, "transactions"),
-        GridShortcut("আয় যোগ", Icons.Rounded.Add, Color(0xFF10B981), "add_income"),
-        GridShortcut("ব্যয় যোগ", Icons.Rounded.Add, Color(0xFFF43F5E), "add_expense"),
-        GridShortcut("আয়-ব্যয়", Icons.Rounded.AccountBalanceWallet, Color(0xFF3B82F6), "income_expense"),
-        GridShortcut("দেনা-পাওনা", Icons.Rounded.Handshake, Color(0xFF9C27B0), "debt_credit"),
-        GridShortcut("বাজেট", Icons.Rounded.PieChart, Color(0xFFF59E0B), "budget_screen"),
-        GridShortcut("রাফ খাতা", Icons.Rounded.Draw, Color(0xFF8B5CF6), "rough_khata"),
-        GridShortcut("বাজারের ফর্দ", Icons.Rounded.ShoppingCart, Color(0xFF0D9488), "shopping_list") // <-- এই নতুন লাইনটি যোগ হলো
+        GridShortcut(stringResource(R.string.shortcut_transactions), Icons.Rounded.ReceiptLong, MaterialTheme.colorScheme.primary, "transactions"),
+        GridShortcut(stringResource(R.string.btn_add_income_short), Icons.Rounded.Add, Color(0xFF10B981), "add_income"),
+        GridShortcut(stringResource(R.string.btn_add_expense_short), Icons.Rounded.Add, Color(0xFFF43F5E), "add_expense"),
+        GridShortcut(stringResource(R.string.shortcut_income_expense), Icons.Rounded.AccountBalanceWallet, Color(0xFF3B82F6), "income_expense"),
+        GridShortcut(stringResource(R.string.shortcut_debt_credit), Icons.Rounded.Handshake, Color(0xFF9C27B0), "debt_credit"),
+        GridShortcut(stringResource(R.string.shortcut_budget), Icons.Rounded.PieChart, Color(0xFFF59E0B), "budget_screen"),
+        GridShortcut(stringResource(R.string.shortcut_rough_khata), Icons.Rounded.Draw, Color(0xFF8B5CF6), "rough_khata"),
+        GridShortcut(stringResource(R.string.shortcut_shopping_list), Icons.Rounded.ShoppingCart, Color(0xFF0D9488), "shopping_list")
     )
 
     val columns = 4
@@ -1115,7 +1131,7 @@ fun QuickShortcutsSection(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 🔥 Top Smooth Blend Effect (আগের সেকশনের সাথে স্মুথলি মিশে যাওয়ার জন্য)
+        // 🔥 Top Smooth Blend Effect (আগের সেকশনের সাথে স্মুথলি মিশে যাওয়ার জন্য)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1125,7 +1141,7 @@ fun QuickShortcutsSection(navController: NavController) {
                         colors = listOf(
                             MaterialTheme.colorScheme.background, // একদম সলিড ব্যাকগ্রাউন্ড থেকে শুরু
                             MaterialTheme.colorScheme.background.copy(alpha = 0.5f), // হালকা ব্লেন্ড
-                            Color.Transparent // পুরোপুরি স্বচ্ছ হয়ে শর্টকাটগুলো দেখাবে
+                            Color.Transparent // পুরোপুরি স্বচ্ছ হয়ে শর্টকাটগুলো দেখাবে
                         )
                     )
                 )
@@ -1236,7 +1252,7 @@ fun QuickShortcutsSection(navController: NavController) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "আরো দেখুন",
+                            text = stringResource(R.string.btn_show_more), // "আরো দেখুন" এর ডাইনামিক স্ট্রিং
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -1277,7 +1293,7 @@ fun QuickShortcutsSection(navController: NavController) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "বন্ধ করুন",
+                        text = stringResource(R.string.btn_show_less), // "বন্ধ করুন" এর ডাইনামিক স্ট্রিং
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -1412,7 +1428,12 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
             modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text("এই সময়ে কোনো হিসাব নেই", color = Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = stringResource(R.string.msg_no_data_pie_chart), // ডাইনামিক স্ট্রিং
+                color = Color.Gray,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
         return
     }
@@ -1421,10 +1442,11 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
     val expPct = (expense / totalVolume) * 100
     val balPct = if (balance > 0) (balance / totalVolume) * 100 else 0f
 
+    // হার্ডকোড করা স্ট্রিং এর বদলে stringResource ব্যবহার করা হয়েছে
     val slices = listOf(
-        SliceData("আয়", income, incPct, Color(0xFFFFCA28)),
-        SliceData("খরচ", expense, expPct, Color(0xFFFF7043)),
-        SliceData("আছে", if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA))
+        SliceData(stringResource(R.string.slice_income), income, incPct, Color(0xFFFFCA28)),
+        SliceData(stringResource(R.string.slice_expense), expense, expPct, Color(0xFFFF7043)),
+        SliceData(stringResource(R.string.slice_balance), if (balance > 0) balance else 0f, balPct, Color(0xFF26C6DA))
     ).filter { it.value > 0f }
 
     val sortedSlices = slices.sortedByDescending { it.value }

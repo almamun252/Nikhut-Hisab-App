@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.Transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,10 +34,26 @@ object PdfGenerator {
     ): Boolean = withContext(Dispatchers.IO) {
         if (transactions.isEmpty()) {
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "কোনো লেনদেন পাওয়া যায়নি!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.msg_no_transactions), Toast.LENGTH_SHORT).show()
             }
             return@withContext false
         }
+
+        // Fetch strings based on user's selected language
+        val appName = context.getString(R.string.app_name)
+        val lblTotalIncome = context.getString(R.string.label_total_income)
+        val lblTotalExpense = context.getString(R.string.label_total_expense)
+        val lblBalance = context.getString(R.string.label_balance)
+        val lblDate = context.getString(R.string.label_date_header)
+        val lblName = context.getString(R.string.label_name_header)
+        val lblCategory = context.getString(R.string.label_category)
+        val lblType = context.getString(R.string.label_type_header)
+        val lblAmount = context.getString(R.string.label_amount_header)
+        val strIncome = context.getString(R.string.tab_income)
+        val strExpense = context.getString(R.string.tab_expense)
+        val lblChart = context.getString(R.string.label_income_expense_chart)
+        val lblTop5 = context.getString(R.string.label_top_5_expenses)
+        val lblGeneratedBy = context.getString(R.string.label_generated_by)
 
         val pdfDocument = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 Size
@@ -69,7 +86,7 @@ object PdfGenerator {
         }
 
         // --- 1. Header Section ---
-        canvas.drawText("নিখুঁত হিসাব", pageInfo.pageWidth / 2f, 50f, titlePaint)
+        canvas.drawText(appName, pageInfo.pageWidth / 2f, 50f, titlePaint)
         canvas.drawText(reportTitle, pageInfo.pageWidth / 2f, 75f, subTitlePaint)
         canvas.drawText(dateRange, pageInfo.pageWidth / 2f, 95f, subTitlePaint)
 
@@ -85,9 +102,9 @@ object PdfGenerator {
         val gap = 20f
         val startX = (pageInfo.pageWidth - (boxWidth * 3 + gap * 2)) / 2f
 
-        drawSummaryBox(canvas, "মোট আয়", "৳${totalIncome.toInt()}", startX, startY, boxWidth, boxHeight, Color.rgb(255, 202, 40)) // Yellow
-        drawSummaryBox(canvas, "মোট ব্যয়", "৳${totalExpense.toInt()}", startX + boxWidth + gap, startY, boxWidth, boxHeight, Color.rgb(244, 67, 54)) // Red
-        drawSummaryBox(canvas, "ব্যালেন্স", "৳${balance.toInt()}", startX + (boxWidth + gap) * 2, startY, boxWidth, boxHeight, Color.rgb(38, 198, 218)) // Teal
+        drawSummaryBox(canvas, lblTotalIncome, "৳${totalIncome.toInt()}", startX, startY, boxWidth, boxHeight, Color.rgb(255, 202, 40)) // Yellow
+        drawSummaryBox(canvas, lblTotalExpense, "৳${totalExpense.toInt()}", startX + boxWidth + gap, startY, boxWidth, boxHeight, Color.rgb(244, 67, 54)) // Red
+        drawSummaryBox(canvas, lblBalance, "৳${balance.toInt()}", startX + (boxWidth + gap) * 2, startY, boxWidth, boxHeight, Color.rgb(38, 198, 218)) // Teal
 
         // --- 3. Charts Section (Dynamic Placement based on Filters) ---
         if (totalIncome > 0 || totalExpense > 0) {
@@ -96,11 +113,11 @@ object PdfGenerator {
 
             if (hasExpenses) {
                 // If there are expenses, show both Pie Chart (left) and Bar Chart (right)
-                drawPdfPieChart(canvas, totalIncome, totalExpense, balance, 150f, chartCenterY, 80f)
-                drawPdfBarChart(canvas, transactions, 320f, chartCenterY - 70f, 220f, 140f)
+                drawPdfPieChart(canvas, totalIncome, totalExpense, balance, lblChart, 150f, chartCenterY, 80f)
+                drawPdfBarChart(canvas, transactions, lblTop5, 320f, chartCenterY - 70f, 220f, 140f)
             } else {
                 // If only income is present, center the pie chart beautifully
-                drawPdfPieChart(canvas, totalIncome, totalExpense, balance, pageInfo.pageWidth / 2f, chartCenterY, 80f)
+                drawPdfPieChart(canvas, totalIncome, totalExpense, balance, lblChart, pageInfo.pageWidth / 2f, chartCenterY, 80f)
             }
         }
 
@@ -111,16 +128,16 @@ object PdfGenerator {
         val headerBgPaint = Paint().apply { color = Color.rgb(33, 150, 243) }
         canvas.drawRect(tableMargin, currentY, pageInfo.pageWidth - tableMargin, currentY + 30f, headerBgPaint)
 
-        canvas.drawText("তারিখ", tableMargin + 10f, currentY + 20f, headerPaint)
-        canvas.drawText("নাম", tableMargin + 100f, currentY + 20f, headerPaint)
-        canvas.drawText("ক্যাটাগরি", tableMargin + 250f, currentY + 20f, headerPaint)
-        canvas.drawText("ধরন", tableMargin + 380f, currentY + 20f, headerPaint)
-        canvas.drawText("পরিমাণ", tableMargin + 460f, currentY + 20f, headerPaint)
+        canvas.drawText(lblDate, tableMargin + 10f, currentY + 20f, headerPaint)
+        canvas.drawText(lblName, tableMargin + 100f, currentY + 20f, headerPaint)
+        canvas.drawText(lblCategory, tableMargin + 250f, currentY + 20f, headerPaint)
+        canvas.drawText(lblType, tableMargin + 380f, currentY + 20f, headerPaint)
+        canvas.drawText(lblAmount, tableMargin + 460f, currentY + 20f, headerPaint)
 
         currentY += 50f
 
         // --- 5. Table Rows (With Pagination logic) ---
-        val sdf = SimpleDateFormat("dd MMM, yyyy", Locale("bn", "BD"))
+        val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
 
         for (tx in transactions) {
             // Check if we need a new page
@@ -132,16 +149,16 @@ object PdfGenerator {
 
                 // Redraw Header on new page
                 canvas.drawRect(tableMargin, currentY, pageInfo.pageWidth - tableMargin, currentY + 30f, headerBgPaint)
-                canvas.drawText("তারিখ", tableMargin + 10f, currentY + 20f, headerPaint)
-                canvas.drawText("নাম", tableMargin + 100f, currentY + 20f, headerPaint)
-                canvas.drawText("ক্যাটাগরি", tableMargin + 250f, currentY + 20f, headerPaint)
-                canvas.drawText("ধরন", tableMargin + 380f, currentY + 20f, headerPaint)
-                canvas.drawText("পরিমাণ", tableMargin + 460f, currentY + 20f, headerPaint)
+                canvas.drawText(lblDate, tableMargin + 10f, currentY + 20f, headerPaint)
+                canvas.drawText(lblName, tableMargin + 100f, currentY + 20f, headerPaint)
+                canvas.drawText(lblCategory, tableMargin + 250f, currentY + 20f, headerPaint)
+                canvas.drawText(lblType, tableMargin + 380f, currentY + 20f, headerPaint)
+                canvas.drawText(lblAmount, tableMargin + 460f, currentY + 20f, headerPaint)
                 currentY += 50f
             }
 
             val dateStr = sdf.format(Date(tx.date))
-            val typeStr = if (tx.type == "Income") "আয়" else "ব্যয়"
+            val typeStr = if (tx.type == "Income") strIncome else strExpense
             val amountStr = if (tx.type == "Income") "+ ৳${tx.amount.toInt()}" else "- ৳${tx.amount.toInt()}"
 
             // Text color based on type
@@ -171,7 +188,7 @@ object PdfGenerator {
             color = Color.GRAY
             textAlign = Paint.Align.CENTER
         }
-        canvas.drawText("Generated by Nikhut Hisab", pageInfo.pageWidth / 2f, pageInfo.pageHeight - 30f, footerPaint)
+        canvas.drawText(lblGeneratedBy, pageInfo.pageWidth / 2f, pageInfo.pageHeight - 30f, footerPaint)
 
         pdfDocument.finishPage(page)
 
@@ -192,7 +209,7 @@ object PdfGenerator {
                         pdfDocument.writeTo(outputStream)
                     }
                 } else {
-                    throw Exception("ফাইল তৈরি করা সম্ভব হয়নি")
+                    throw Exception(context.getString(R.string.msg_pdf_creation_failed))
                 }
             } else {
                 // For Android 9 and below
@@ -207,7 +224,7 @@ object PdfGenerator {
             pdfDocument.close()
 
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "PDF সেভ হয়েছে: Downloads/$fileName", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.msg_pdf_saved, fileName), Toast.LENGTH_LONG).show()
             }
             return@withContext true
 
@@ -215,7 +232,7 @@ object PdfGenerator {
             e.printStackTrace()
             pdfDocument.close()
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "PDF তৈরিতে সমস্যা হয়েছে: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.msg_pdf_error, e.message), Toast.LENGTH_SHORT).show()
             }
             return@withContext false
         }
@@ -243,7 +260,7 @@ object PdfGenerator {
         canvas.drawText(amount, x + width / 2, y + 45f, amountPaint)
     }
 
-    private fun drawPdfPieChart(canvas: Canvas, income: Float, expense: Float, balance: Float, cx: Float, cy: Float, radius: Float) {
+    private fun drawPdfPieChart(canvas: Canvas, income: Float, expense: Float, balance: Float, chartLabel: String, cx: Float, cy: Float, radius: Float) {
         val total = income + expense + if (balance > 0) balance else 0f
         if (total == 0f) return
 
@@ -268,10 +285,10 @@ object PdfGenerator {
         }
 
         // Label
-        canvas.drawText("আয়-ব্যয় চার্ট", cx, cy + radius + 20f, Paint().apply { textAlign = Paint.Align.CENTER; textSize = 12f; color = Color.DKGRAY })
+        canvas.drawText(chartLabel, cx, cy + radius + 20f, Paint().apply { textAlign = Paint.Align.CENTER; textSize = 12f; color = Color.DKGRAY })
     }
 
-    private fun drawPdfBarChart(canvas: Canvas, transactions: List<Transaction>, startX: Float, startY: Float, width: Float, height: Float) {
+    private fun drawPdfBarChart(canvas: Canvas, transactions: List<Transaction>, chartLabel: String, startX: Float, startY: Float, width: Float, height: Float) {
         val topExpenses = transactions
             .filter { it.type == "Expense" }
             .groupBy { it.category }
@@ -311,6 +328,6 @@ object PdfGenerator {
         }
 
         // Label
-        canvas.drawText("শীর্ষ ৫ খরচ", startX + width/2, startY + height + 35f, Paint().apply { textAlign = Paint.Align.CENTER; textSize = 12f; color = Color.DKGRAY })
+        canvas.drawText(chartLabel, startX + width/2, startY + height + 35f, Paint().apply { textAlign = Paint.Align.CENTER; textSize = 12f; color = Color.DKGRAY })
     }
 }

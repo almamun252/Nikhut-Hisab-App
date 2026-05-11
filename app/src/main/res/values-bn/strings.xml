@@ -1,0 +1,350 @@
+<resources>
+    <string name="app_name">নিখুঁত হিসাব</string>
+
+    <!-- Profile Screen Strings -->
+    <string name="default_user_name">ব্যবহারকারীর নাম</string>
+    <string name="default_email">example@gmail.com</string>
+    <string name="data_backup_and_settings">ডেটা ব্যাকআপ ও সেটিংস</string>
+    <string name="change_language">ভাষা পরিবর্তন</string>
+    <string name="change_language_desc">অ্যাপের ভাষা বাংলা বা English করুন</string>
+    <string name="backup_now">এখনই ব্যাকআপ নিন</string>
+    <string name="backup_now_desc">সব ডেটা সার্ভারে সেভ করুন</string>
+    <string name="auto_backup_title">রাত ১২টায় অটো ব্যাকআপ</string>
+    <string name="auto_backup_desc">প্রতিদিন নীরবে আপডেট হবে</string>
+    <string name="logout">লগআউট করুন</string>
+    <string name="select_language">ভাষা নির্বাচন করুন</string>
+    <string name="choose_your_preferred_language">Choose your preferred language</string>
+    <string name="english">English</string>
+    <string name="bangla">বাংলা</string>
+    <string name="bengali">Bengali</string>
+
+
+
+    <string name="nav_home">হোম</string>
+    <string name="nav_transactions">লেনদেন</string>
+    <string name="nav_shopping_list">ফর্দ</string>
+    <string name="nav_profile">প্রোফাইল</string>
+
+    <string name="title_dashboard">ড্যাশবোর্ড</string>
+    <string name="title_income_expense">আয় ও ব্যয় খাতা</string>
+    <string name="title_all_transactions">সকল লেনদেন</string>
+    <string name="title_shopping_list">বাজারের ফর্দ</string>
+
+    <string name="desc_theme_toggle">থিম পরিবর্তন</string>
+    <string name="desc_notifications">নোটিফিকেশন</string>
+
+    <string name="your_notifications">আপনার নোটিফিকেশন</string>
+    <string name="no_new_notifications">কোনো নতুন নোটিফিকেশন নেই।</string>
+    <string name="deadline_label">ডেডলাইন: %1$s</string>
+    <string name="notif_lending">%1$s এর ৳%2$d পরিশোধ করার কথা।</string>
+    <string name="notif_borrowing">%1$s কে ৳%2$d পরিশোধ করতে হবে।</string>
+
+
+    <!-- Add Debt/Credit Screen Strings -->
+    <string name="title_update_lending">পাওনা আপডেট</string>
+    <string name="title_update_borrowing">দেনা আপডেট</string>
+    <string name="title_add_lending">নতুন পাওনা যোগ</string>
+    <string name="title_add_borrowing">নতুন দেনা যোগ</string>
+    <string name="label_lending_to">কাকে দিচ্ছেন? (নাম)</string>
+    <string name="label_borrowing_from">কার কাছ থেকে নিচ্ছেন? (নাম)</string>
+    <string name="label_amount_required">টাকার পরিমাণ *</string>
+    <string name="label_date_time_given">প্রদানের তারিখ ও সময়</string>
+    <string name="label_set_deadline_optional">ডেডলাইন সেট করুন (ঐচ্ছিক)</string>
+    <string name="label_when_repay">কবে পরিশোধ করবে/করবেন?</string>
+    <string name="label_detailed_note_optional">বিস্তারিত নোট (ঐচ্ছিক)</string>
+    <string name="msg_valid_amount_required">সঠিক টাকার পরিমাণ দিন!</string>
+    <string name="msg_person_name_required">ব্যক্তির নাম দেওয়া আবশ্যক!</string>
+    <string name="msg_updated_successfully">আপডেট হয়েছে!</string>
+    <string name="msg_saved_successfully">সফলভাবে সেভ হয়েছে!</string>
+    <string name="btn_update">আপডেট করুন</string>
+    <string name="btn_save">সেভ করুন</string>
+    <string name="btn_next_time">পরবর্তী (সময়)</string>
+    <string name="btn_cancel">বাতিল</string>
+    <string name="btn_confirm">নিশ্চিত করুন</string>
+    <string name="title_select_time">সময় নির্বাচন করুন</string>
+    <string name="title_select_deadline">ডেডলাইন নির্বাচন করুন</string>
+    <string name="title_deadline_time">ডেডলাইনের সময়</string>
+    <string name="cat_lent">ধার দিয়েছি</string>
+    <string name="cat_borrowed">ধার নিয়েছি</string>
+    <string name="desc_back">পেছনে যান</string>
+    <string name="desc_clear">মুছে ফেলুন</string>
+
+
+    <!-- Add Transaction Screen Strings -->
+    <string name="title_update_income">আয় আপডেট করুন</string>
+    <string name="title_update_expense">ব্যয় আপডেট করুন</string>
+    <string name="title_add_income">নতুন আয়</string>
+    <string name="title_add_expense">নতুন ব্যয়</string>
+    <string name="cat_other">অন্যান্য</string>
+    <string name="label_expense_type">খরচের ধরন নির্বাচন করুন:</string>
+    <string name="type_cash_expense">নগদ খরচ</string>
+    <string name="type_borrowed_expense">ধারে খরচ</string>
+    <string name="label_borrowed_from_required">কার কাছ থেকে ধার করা হলো? *</string>
+    <string name="label_repay_when_optional">কবে পরিশোধ করবেন? (ঐচ্ছিক)</string>
+    <string name="label_repay_deadline">পরিশোধের ডেডলাইন</string>
+    <string name="label_income_name_optional">আয়ের নাম (ঐচ্ছিক)</string>
+    <string name="label_expense_name_optional">খরচের নাম (ঐচ্ছিক)</string>
+    <string name="label_category">ক্যাটাগরি</string>
+    <string name="label_date_time">তারিখ ও সময়</string>
+    <string name="msg_lender_name_required">দয়া করে ধার প্রদানকারীর নাম লিখুন!</string>
+    <string name="msg_added_successfully">সফলভাবে যুক্ত হয়েছে!</string>
+    <string name="msg_deleted_successfully">হিসাবটি মুছে ফেলা হয়েছে!</string>
+    <string name="desc_delete">ডিলিট</string>
+    <string name="borrowed_expense_note">ধারে করা খরচ: %1$s</string>
+    <string name="cat_loan">ধার/লোন</string>
+
+    <!-- Category & Chips Defaults -->
+    <string name="cat_food">খাবার</string>
+    <string name="cat_transport">যাতায়াত</string>
+    <string name="cat_rent">বাসা ভাড়া</string>
+    <string name="cat_shopping">শপিং</string>
+    <string name="cat_bills">বিল</string>
+    <string name="cat_health">চিকিৎসা</string>
+    <string name="cat_education">শিক্ষা</string>
+    <string name="cat_salary">বেতন</string>
+    <string name="cat_freelance">ফ্রিল্যান্সিং</string>
+    <string name="cat_gift">উপহার</string>
+    <string name="cat_business">ব্যবসা</string>
+    <string name="chip_rickshaw">রিকশা</string>
+    <string name="chip_bus">বাস</string>
+    <string name="chip_tea">চা</string>
+    <string name="chip_internet">ইন্টারনেট</string>
+    <string name="chip_bonus">বোনাস</string>
+
+    <!-- Budget Screen Strings -->
+    <string name="btn_new_budget">নতুন বাজেট</string>
+    <string name="title_monthly_budget">মাসিক বাজেট</string>
+    <string name="msg_no_budget_this_month">এই মাসে কোনো বাজেট নেই!</string>
+    <string name="desc_set_budget_to_control">খরচ নিয়ন্ত্রণে রাখতে বাজেট সেট করুন</string>
+    <string name="msg_budget_deleted">বাজেট মুছে ফেলা হয়েছে</string>
+    <string name="title_set_new_budget">নতুন বাজেট সেট করুন</string>
+    <string name="title_update_budget">বাজেট আপডেট করুন</string>
+    <string name="label_select_category">ক্যাটাগরি নির্বাচন করুন</string>
+    <string name="label_budget_amount">বাজেটের পরিমাণ</string>
+    <string name="msg_budget_exists">এই ক্যাটাগরিতে আগে থেকেই বাজেট আছে!</string>
+    <string name="msg_budget_saved">বাজেট সেভ হয়েছে</string>
+    <string name="status_budget_warning">সতর্কতা! বাজেট প্রায় শেষ</string>
+    <string name="status_spend_carefully">সাবধানে খরচ করুন</string>
+    <string name="status_budget_safe">বাজেট নিরাপদ আছে</string>
+    <string name="label_spent">খরচ হয়েছে: ৳%1$d</string>
+    <string name="label_budget_colon">বাজেট: ৳%1$d</string>
+    <string name="msg_over_budget">বাজেট থেকে ৳%1$d বেশি খরচ হয়েছে!</string>
+    <string name="msg_remaining_budget">বাকি আছে: ৳%1$d</string>
+    <string name="desc_options">অপশন</string>
+
+
+    <!-- Filter & Common Strings -->
+    <string name="filter_all_time">সব সময়</string>
+    <string name="filter_this_month">চলতি মাস</string>
+    <string name="filter_last_month">গত মাস</string>
+    <string name="filter_last_6_months">গত ৬ মাস</string>
+    <string name="filter_custom_range">কাস্টম রেঞ্জ</string>
+
+    <!-- Debt/Credit Screen Strings -->
+    <string name="btn_new_receivable">নতুন পাওনা</string>
+    <string name="btn_new_payable">নতুন দেনা</string>
+    <string name="title_debt_credit_ledger">দেনা-পাওনা খাতা</string>
+    <string name="hint_search_receivable">পাওনা খুঁজুন...</string>
+    <string name="hint_search_payable">দেনা খুঁজুন...</string>
+    <string name="label_total_receivable">মোট পাওনা</string>
+    <string name="label_total_payable">মোট দেনা</string>
+    <string name="msg_no_receivable">কাউকে এখনো টাকা দেননি!</string>
+    <string name="msg_no_payable">কারো কাছ থেকে টাকা নেননি!</string>
+    <string name="msg_click_bottom_button_to_add">নতুন হিসাব যোগ করতে নিচের বাটনে ক্লিক করুন</string>
+    <string name="status_fully_settled">সম্পূর্ণ পরিশোধিত ✅</string>
+    <string name="status_settled_short">পরিশোধিত ✅</string>
+    <string name="label_total_amount">মোট পরিমাণ</string>
+    <string name="label_settled_amount">পরিশোধ হয়েছে</string>
+    <string name="label_remaining_amount">বাকি আছে</string>
+    <string name="label_remaining_short">বাকি: ৳%1$d</string>
+    <string name="label_deadline_date">ডেডলাইন: %1$s</string>
+    <string name="btn_receive_payment">টাকা পেয়েছি (Add Payment)</string>
+    <string name="btn_give_payment">টাকা দিয়েছি (Add Payment)</string>
+    <string name="title_delete_transaction">হিসাব মুছে ফেলবেন?</string>
+    <string name="msg_confirm_delete_transaction">আপনি কি নিশ্চিত যে এই হিসাবটি মুছে ফেলতে চান? মুছে ফেললে এটি আর ফিরে পাওয়া যাবে না।</string>
+    <string name="btn_yes_delete">হ্যাঁ, মুছে ফেলুন</string>
+    <string name="title_update_payment">পরিশোধ আপডেট করুন</string>
+    <string name="hint_how_much">কত টাকা?</string>
+    <string name="msg_enter_valid_amount">সঠিক পরিমাণ দিন!</string>
+    <string name="title_select_date">তারিখ নির্বাচন করুন</string>
+    <string name="hint_select_start_date">শুরুর তারিখ নির্বাচন করুন</string>
+    <string name="hint_select_end_date">শেষের তারিখ নির্বাচন করুন</string>
+    <string name="title_start_date"> শুরুর তারিখ</string>
+    <string name="title_end_date"> শেষের তারিখ</string>
+    <string name="btn_ok">ঠিক আছে</string>
+    <string name="tab_receivable">পাবো</string>
+    <string name="tab_payable">দিবো</string>
+
+    <string name="label_deadline">ডেডলাইন</string>
+    <string name="msg_routing_error">রাউটিং এরর হয়েছে</string>
+    <string name="label_remaining_amount_with_value">বাকি: ৳%1$s</string>
+
+    <!-- Income/Expense Screen Strings -->
+    <string name="hint_search">খুঁজুন...</string>
+    <string name="label_total_income">মোট আয়</string>
+    <string name="label_total_expense">মোট ব্যয়</string>
+    <string name="tab_income">আয়</string>
+    <string name="tab_expense">ব্যয়</string>
+    <string name="msg_no_income">কোনো আয়ের হিসাব নেই!</string>
+    <string name="msg_no_expense">কোনো ব্যয়ের হিসাব নেই!</string>
+
+    <string name="btn_new_income">নতুন আয়</string>
+    <string name="btn_new_expense">নতুন ব্যয়</string>
+
+    <!-- Transactions & PDF Report Screen Strings -->
+    <string name="filter_all_type">সব ধরন</string>
+    <string name="filter_custom">কাস্টম 📅</string>
+    <string name="msg_no_transactions">কোনো লেনদেন পাওয়া যায়নি!</string>
+    <string name="btn_previous">পূর্ববর্তী</string>
+    <string name="btn_next">পরবর্তী</string>
+    <string name="label_page_info">পেজ %1$d / %2$d</string>
+    <string name="msg_generating_report">রিপোর্ট তৈরি হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</string>
+    <string name="title_download_report">রিপোর্ট ডাউনলোড</string>
+    <string name="step_transaction_type">১. লেনদেনের ধরন</string>
+    <string name="step_time_period">২. সময়কাল</string>
+    <string name="step_category_optional">৩. ক্যাটাগরি (ঐচ্ছিক)</string>
+    <string name="filter_all">সব</string>
+    <string name="filter_specific_month">নির্দিষ্ট মাস</string>
+    <string name="filter_custom_date">কাস্টম ডেট</string>
+    <string name="filter_all_time_report">শুরু থেকে আজ</string>
+    <string name="filter_all_categories">সব ক্যাটাগরি</string>
+    <string name="btn_generate_download_pdf">PDF তৈরি ও ডাউনলোড করুন</string>
+    <string name="report_income">আয় রিপোর্ট</string>
+    <string name="report_expense">ব্যয় রিপোর্ট</string>
+    <string name="report_lending">পাওনা রিপোর্ট</string>
+    <string name="report_borrowing">দেনা রিপোর্ট</string>
+    <string name="report_all_transactions">সকল লেনদেন রিপোর্ট</string>
+    <string name="report_custom_range">কাস্টম রেঞ্জ</string>
+    <string name="report_all_time">শুরু থেকে আজ পর্যন্ত</string>
+    <string name="report_file_prefix">হিসাব</string>
+    <string name="btn_reset">রিসেট</string>
+    <string name="label_time_only">সময়</string>
+    <string name="label_date_only">তারিখ</string>
+    <string name="today">আজ</string>
+    <string name="to">হতে</string>
+
+    <string name="label_note">নোট</string>
+    <string name="btn_edit">এডিট</string>
+    <string name="btn_delete">ডিলিট</string>
+    <string name="desc_add">যোগ করুন</string>
+    <string name="msg_enter_valid_info">সঠিক তথ্য দিন!</string>
+
+    <!-- Rough Khata Strings -->
+    <string name="title_rough_khata">রাফ খাতা</string>
+    <string name="subtitle_rough_khata">সাময়িক হিসাবের তালিকা</string>
+    <string name="btn_new_rough_khata">নতুন রাফ হিসাব</string>
+    <string name="label_rough_total_expense">রাফ খাতার মোট খরচ</string>
+    <string name="msg_rough_empty">রাফ খাতা একদম ফাঁকা!</string>
+    <string name="msg_rough_empty_desc">বন্ধুদের সাথে ট্যুর বা শপিংয়ের হিসাব এখানে রাখুন।</string>
+    <string name="label_rough_name_hint">হিসাবের নাম (যেমন: রিকশা ভাড়া)</string>
+    <string name="label_amount_only">টাকার পরিমাণ</string>
+    <string name="title_move_to_main_confirm">মূল হিসাবে পাঠাবেন?</string>
+    <string name="msg_move_to_main_desc">এই খরচটি আপনার মেইন ব্যালেন্স থেকে কাটা হবে এবং \'%1$s\' ক্যাটাগরিতে যুক্ত হবে। আপনি কি নিশ্চিত?</string>
+    <string name="msg_moved_to_main_success">মূল হিসাবে যুক্ত হয়েছে!</string>
+    <string name="btn_yes_add">হ্যাঁ, যুক্ত করুন</string>
+    <string name="title_clear_all_rough">সব হিসাব মুছে ফেলবেন?</string>
+    <string name="msg_clear_all_rough_desc">ট্যুর বা ইভেন্ট শেষ? রাফ খাতার সব হিসাব মুছে নতুন করে শুরু করতে পারেন।</string>
+    <string name="msg_all_deleted_successfully">সব হিসাব মুছে ফেলা হয়েছে</string>
+    <string name="label_note_prefix">নোট: %1$s</string>
+    <string name="status_moved_to_main">মূল খরচের খাতায় যুক্ত করা হয়েছে</string>
+    <string name="btn_move_to_main">মূল খরচে সরান</string>
+    <string name="btn_add">যোগ করুন</string>
+    <string name="desc_clear_all">সব মুছুন</string>
+
+
+    <!-- Shopping List Strings -->
+    <string name="default_merge_title">কাঁচাবাজার</string>
+    <string name="label_items_selected">%1$dটি নির্বাচিত</string>
+    <string name="desc_clear_all_items">সব মুছুন</string>
+    <string name="label_estimated_cost_remaining">সম্ভাব্য খরচ (বাকি)</string>
+    <string name="label_actual_cost_purchased">আসল খরচ (কেনা)</string>
+    <string name="msg_shopping_list_empty">ফর্দ একদম ফাঁকা</string>
+    <string name="msg_shopping_list_empty_desc">বাজারে যাওয়ার আগে আইটেম যোগ করুন</string>
+    <string name="title_new_item">নতুন আইটেম</string>
+    <string name="hint_item_name">আইটেমের নাম (যেমন: ৫ কেজি চাল)</string>
+    <string name="hint_estimated_price">আন্দাজ করা দাম (ঐচ্ছিক)</string>
+    <string name="btn_add_item">যুক্ত করুন</string>
+    <string name="msg_enter_item_name">আইটেমের নাম দিন!</string>
+    <string name="title_enter_actual_price">আসল দাম দিন</string>
+    <string name="hint_actual_price_of_item">%1$s এর দাম</string>
+    <string name="title_merge_items">একত্রিত (Merge) করুন</string>
+    <string name="msg_merge_description">%1$dটি আইটেম একটি বান্ডেলে রূপান্তর হবে।</string>
+    <string name="hint_new_name_merge">নতুন নাম (যেমন: মুদি দোকান)</string>
+    <string name="hint_total_actual_price">সর্বমোট আসল দাম</string>
+    <string name="btn_merge">একত্রিত করুন</string>
+    <string name="title_transfer_to_main">মূল হিসাবে যুক্ত করুন</string>
+    <string name="msg_transfer_to_main_desc">এই খরচটি মেইন ব্যালেন্স থেকে কাটা হবে। ক্যাটাগরি নির্বাচন করুন:</string>
+    <string name="msg_transfer_category_required">ক্যাটাগরি নির্বাচন করুন</string>
+    <string name="title_clear_shopping_list">ফর্দ মুছবেন?</string>
+    <string name="msg_clear_shopping_list_desc">ফর্দের সব আইটেম মুছে নতুন করে শুরু করতে চান?</string>
+    <string name="btn_yes_clear">হ্যাঁ, মুছুন</string>
+    <string name="desc_close">বন্ধ করুন</string>
+    <string name="desc_merge">একত্রিত করুন</string>
+
+
+    <!-- PDF Generator Strings -->
+    <string name="label_balance">ব্যালেন্স</string>
+    <string name="label_income_expense_chart">আয়-ব্যয় চার্ট</string>
+    <string name="label_top_5_expenses">শীর্ষ ৫ খরচ</string>
+    <string name="label_date_header">তারিখ</string>
+    <string name="label_name_header">নাম</string>
+    <string name="label_type_header">ধরন</string>
+    <string name="label_amount_header">পরিমাণ</string>
+    <string name="label_generated_by">Generated by Nikhut Hisab</string>
+    <string name="msg_pdf_creation_failed">ফাইল তৈরি করা সম্ভব হয়নি</string>
+    <string name="msg_pdf_saved">PDF সেভ হয়েছে: Downloads/%1$s</string>
+    <string name="msg_pdf_error">PDF তৈরিতে সমস্যা হয়েছে: %1$s</string>
+
+
+    <!-- FirebaseAuthlmpl Strings -->
+    <string name="msg_user_not_found">ইউজার পাওয়া যায়নি!</string>
+
+    <!-- AuthViewModel Strings -->
+    <string name="msg_login_failed">লগইন ব্যর্থ হয়েছে!</string>
+
+    <!-- ProfileViewModel Strings -->
+    <string name="never_backed_up">কখনো ব্যাকআপ করা হয়নি</string>
+
+    <!-- Notification Strings -->
+    <string name="notif_daily_title">আজকের হিসাব রেখেছেন?</string>
+    <string name="notif_daily_desc">সারাদিনের সব খরচ বা আয় লেখা হয়েছে তো? কিছু বাদ থাকলে এখনই যোগ করে নিন।</string>
+    <string name="notif_unknown_person">অজ্ঞাত</string>
+    <string name="notif_payment_title">পেমেন্ট রিমাইন্ডার!</string>
+    <string name="notif_payment_lending">আগামীকাল %1$s এর ৳%2$d দেওয়ার কথা।</string>
+    <string name="notif_payment_borrowing">আগামীকাল %1$s কে ৳%2$d পরিশোধ করতে হবে।</string>
+    <string name="notif_channel_name">লেনদেন রিমাইন্ডার</string>
+    <string name="notif_channel_desc">দেনা-পাওনা এবং বিলের রিমাইন্ডার</string>
+
+
+    <!-- Home screen Strings -->
+    <string name="title_start_tracking">হিসাব শুরু করুন!</string>
+    <string name="desc_start_tracking">আপনার প্রথম আয় বা ব্যয় যোগ করতে নিচের বাটনগুলোতে ক্লিক করুন।</string>
+    <string name="btn_add_income_short">আয় যোগ</string>
+    <string name="btn_add_expense_short">ব্যয় যোগ</string>
+    <string name="label_current_balance">বর্তমান ব্যালেন্স</string>
+    <string name="label_total_loan">মোট ঋণ</string>
+    <string name="btn_show_more">আরো দেখুন</string>
+    <string name="btn_show_less">বন্ধ করুন</string>
+    <string name="title_top_5_expenses">শীর্ষ ৫ খরচের খাত</string>
+    <string name="title_recent_transactions">সাম্প্রতিক লেনদেন</string>
+    <string name="msg_no_transactions_period">এই সময়ে কোনো লেনদেন হয়নি।</string>
+    <string name="slice_income">আয়</string>
+    <string name="slice_expense">খরচ</string>
+    <string name="slice_balance">আছে</string>
+    <string name="msg_no_data_pie_chart">এই সময়ে কোনো হিসাব নেই</string>
+
+    <string name="alert_overdue_lending">সতর্কতা: %1$s এর ৳%2$d দেওয়ার সময় পার হয়ে গেছে!</string>
+    <string name="alert_overdue_borrowing">সতর্কতা: %1$s কে ৳%2$d পরিশোধ করার সময় পার হয়ে গেছে!</string>
+    <string name="alert_today_lending">আজ %1$s এর ৳%2$d দেওয়ার কথা</string>
+    <string name="alert_today_borrowing">আজ %1$s কে ৳%2$d দিতে হবে</string>
+    <string name="alert_upcoming_lending">আগামী %3$s তারিখে %1$s ৳%2$d দেবেন</string>
+    <string name="alert_upcoming_borrowing">আগামী %3$s তারিখে %1$s কে ৳%2$d দিতে হবে</string>
+
+    <string name="shortcut_transactions">লেনদেন</string>
+    <string name="shortcut_income_expense">আয়-ব্যয়</string>
+    <string name="shortcut_debt_credit">দেনা-পাওনা</string>
+    <string name="shortcut_budget">বাজেট</string>
+    <string name="shortcut_rough_khata">রাফ খাতা</string>
+    <string name="shortcut_shopping_list">বাজারের ফর্দ</string>
+
+</resources>

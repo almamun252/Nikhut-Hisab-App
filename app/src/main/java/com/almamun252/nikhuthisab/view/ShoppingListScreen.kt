@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.ShoppingItem
 import com.almamun252.nikhuthisab.viewmodel.ShoppingViewModel
 
@@ -66,16 +68,30 @@ fun ShoppingListScreen(
     var purchaseItem by remember { mutableStateOf<ShoppingItem?>(null) }
     var actualPriceInput by remember { mutableStateOf("") }
 
+    // Dynamic Strings initialization for defaults
+    val defaultMergeTitle = stringResource(R.string.default_merge_title)
+    val catOtherStr = stringResource(R.string.cat_other)
+
     // Merge Dialog State
     var showMergeDialog by remember { mutableStateOf(false) }
-    var mergeTitleInput by remember { mutableStateOf("কাঁচাবাজার") }
+    var mergeTitleInput by remember { mutableStateOf(defaultMergeTitle) }
     var mergeTotalActualPriceInput by remember { mutableStateOf("") }
 
     // Transfer Dialog State
     var transferItem by remember { mutableStateOf<ShoppingItem?>(null) }
     var selectedCategory by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
-    val availableCategories = listOf("খাবার", "যাতায়াত", "বাসা ভাড়া", "শপিং", "বিল", "চিকিৎসা", "শিক্ষা", "অন্যান্য")
+
+    val availableCategories = listOf(
+        stringResource(R.string.cat_food),
+        stringResource(R.string.cat_transport),
+        stringResource(R.string.cat_rent),
+        stringResource(R.string.cat_shopping),
+        stringResource(R.string.cat_bills),
+        stringResource(R.string.cat_health),
+        stringResource(R.string.cat_education),
+        catOtherStr
+    )
 
     // Input States for Add
     var inputName by remember { mutableStateOf("") }
@@ -108,10 +124,10 @@ fun ShoppingListScreen(
                     modifier = Modifier.padding(bottom = 90.dp).size(60.dp),
                     containerColor = themeColor,
                     contentColor = Color.White,
-                    shape = CircleShape, // মডার্ন গোলাকার বাটন
+                    shape = CircleShape,
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add", modifier = Modifier.size(30.dp))
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.desc_add), modifier = Modifier.size(30.dp))
                 }
             }
         }
@@ -121,92 +137,72 @@ fun ShoppingListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // --- Modern Header Section ---
-            AnimatedContent(
-                targetState = isMultiSelectMode,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-                }, label = "header_anim"
-            ) { multiSelect ->
-                if (multiSelect) {
-                    // Multi-Select Contextual Header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(themeColor)
-                            .statusBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { selectedItemIds = emptySet() }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${selectedItemIds.size}টি নির্বাচিত", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            // --- Contextual Selection Bar (Only visible when multi-select is active) ---
+            AnimatedVisibility(
+                visible = isMultiSelectMode,
+                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(themeColor)
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { selectedItemIds = emptySet() }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.desc_close), tint = Color.White)
                         }
-                        Row {
-                            IconButton(
-                                onClick = { showMergeDialog = true },
-                                modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)
-                            ) {
-                                Icon(Icons.Rounded.CallMerge, contentDescription = "Merge", tint = Color.White)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            IconButton(
-                                onClick = {
-                                    shoppingViewModel.deleteMultipleItems(selectedItemIds.toList())
-                                    selectedItemIds = emptySet()
-                                },
-                                modifier = Modifier.background(Color(0xFFFFB4AB).copy(alpha = 0.2f), CircleShape)
-                            ) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color(0xFFFFB4AB))
-                            }
-                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.label_items_selected, selectedItemIds.size), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
-                } else {
-                    // Normal Clean Header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White)
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(bgColor)
-                                    .clickable { navController.popBackStack() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Rounded.ArrowBack, contentDescription = "Back", tint = Color(0xFF334155))
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text("বাজারের ফর্দ", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
-                                Text("সহজ কেনাকাটা", fontSize = 13.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
-                            }
+                    Row {
+                        IconButton(
+                            onClick = {
+                                mergeTitleInput = defaultMergeTitle
+                                showMergeDialog = true
+                            },
+                            modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)
+                        ) {
+                            Icon(Icons.Rounded.CallMerge, contentDescription = stringResource(R.string.desc_merge), tint = Color.White)
                         }
-                        if (shoppingItems.isNotEmpty()) {
-                            IconButton(
-                                onClick = { showClearDialog = true },
-                                modifier = Modifier.background(Color(0xFFFEF2F2), CircleShape)
-                            ) {
-                                Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear All", tint = Color(0xFFEF4444))
-                            }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        IconButton(
+                            onClick = {
+                                shoppingViewModel.deleteMultipleItems(selectedItemIds.toList())
+                                selectedItemIds = emptySet()
+                            },
+                            modifier = Modifier.background(Color(0xFFFFB4AB).copy(alpha = 0.2f), CircleShape)
+                        ) {
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.desc_delete), tint = Color(0xFFFFB4AB))
                         }
                     }
                 }
             }
 
+            if (!isMultiSelectMode && shoppingItems.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { showClearDialog = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
+                    ) {
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.desc_clear_all_items), fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else if (!isMultiSelectMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // --- Modern Summary Card (Gradient & Glass effect) ---
             AnimatedVisibility(visible = isVisible && !isMultiSelectMode, enter = fadeIn(tween(600))) {
-                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -222,19 +218,18 @@ fun ShoppingListScreen(
                         Column {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {
-                                    Text("সম্ভাব্য খরচ (বাকি)", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                                    Text(stringResource(R.string.label_estimated_cost_remaining), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text("৳${totalEstimated.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("আসল খরচ (কেনা)", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                                    Text(stringResource(R.string.label_actual_cost_purchased), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text("৳${totalActual.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                                 }
                             }
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Progress Bar Section
                             val progress = if (totalItems > 0) purchasedItems.toFloat() / totalItems.toFloat() else 0f
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 LinearProgressIndicator(
@@ -266,9 +261,9 @@ fun ShoppingListScreen(
                             Icon(Icons.Rounded.ShoppingBasket, contentDescription = null, tint = themeColor.copy(alpha = 0.6f), modifier = Modifier.size(50.dp))
                         }
                         Spacer(modifier = Modifier.height(20.dp))
-                        Text("ফর্দ একদম ফাঁকা", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                        Text(stringResource(R.string.msg_shopping_list_empty), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("বাজারে যাওয়ার আগে আইটেম যোগ করুন", fontSize = 15.sp, color = Color(0xFF94A3B8))
+                        Text(stringResource(R.string.msg_shopping_list_empty_desc), fontSize = 15.sp, color = Color(0xFF94A3B8))
                     }
                 }
             } else {
@@ -307,37 +302,30 @@ fun ShoppingListScreen(
             }
         }
 
-        // --- Dialogs (Add, Purchase, Merge, Transfer, Clear) ---
-        // (ডায়ালগগুলোর কোড আগের মতোই থাকবে, শুধু কালারগুলো themeColor অনুযায়ী অ্যাডজাস্ট হবে)
+        // --- Dialogs ---
 
-        // 1. Add Item Dialog
+        // 1. Add Item Dialog (Fixed Floating Labels)
         if (showAddDialog) {
             AlertDialog(
                 onDismissRequest = { showAddDialog = false },
                 containerColor = Color.White,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("নতুন আইটেম", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) },
+                title = { Text(stringResource(R.string.title_new_item), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedTextField(
+                        AlwaysFloatingOutlinedTextField(
                             value = inputName,
                             onValueChange = { inputName = it },
-                            label = { Text("আইটেমের নাম (যেমন: ৫ কেজি চাল)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            label = stringResource(R.string.hint_item_name),
+                            themeColor = themeColor
                         )
-                        OutlinedTextField(
+                        AlwaysFloatingOutlinedTextField(
                             value = inputEstimatedPrice,
                             onValueChange = { inputEstimatedPrice = it },
-                            label = { Text("আন্দাজ করা দাম (ঐচ্ছিক)") },
+                            label = stringResource(R.string.hint_estimated_price),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
                             leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            themeColor = themeColor
                         )
                     }
                 },
@@ -349,37 +337,35 @@ fun ShoppingListScreen(
                                 shoppingViewModel.insertItem(ShoppingItem(name = inputName.trim(), estimatedPrice = estPrice, dateAdded = System.currentTimeMillis()))
                                 showAddDialog = false
                             } else {
-                                Toast.makeText(context, "আইটেমের নাম দিন!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_enter_item_name), Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                         shape = RoundedCornerShape(50)
-                    ) { Text("যুক্ত করুন", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    ) { Text(stringResource(R.string.btn_add_item), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddDialog = false }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { showAddDialog = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
 
-        // 2. Purchase Dialog
+        // 2. Purchase Dialog (Fixed Floating Labels)
         if (purchaseItem != null) {
             AlertDialog(
                 onDismissRequest = { purchaseItem = null },
                 containerColor = Color.White,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("আসল দাম দিন", fontWeight = FontWeight.ExtraBold) },
+                title = { Text(stringResource(R.string.title_enter_actual_price), fontWeight = FontWeight.ExtraBold) },
                 text = {
-                    OutlinedTextField(
+                    AlwaysFloatingOutlinedTextField(
                         value = actualPriceInput,
                         onValueChange = { actualPriceInput = it },
-                        label = { Text("${purchaseItem?.name} এর দাম") },
+                        label = stringResource(R.string.hint_actual_price_of_item, purchaseItem?.name ?: ""),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
                         leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                        singleLine = true
+                        themeColor = themeColor,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 },
                 confirmButton = {
@@ -393,15 +379,15 @@ fun ShoppingListScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                         shape = RoundedCornerShape(50)
-                    ) { Text("নিশ্চিত করুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_confirm), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { purchaseItem = null }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { purchaseItem = null }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
 
-        // 3. Merge Items Dialog
+        // 3. Merge Items Dialog (Fixed Floating Labels)
         if (showMergeDialog) {
             val preCalculatedTotal = selectedItemIds.mapNotNull { id -> shoppingItems.find { it.id == id } }
                 .sumOf { if (it.isPurchased) it.actualPrice else it.estimatedPrice }
@@ -416,30 +402,24 @@ fun ShoppingListScreen(
                 onDismissRequest = { showMergeDialog = false },
                 containerColor = Color.White,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("একত্রিত (Merge) করুন", fontWeight = FontWeight.ExtraBold) },
+                title = { Text(stringResource(R.string.title_merge_items), fontWeight = FontWeight.ExtraBold) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("${selectedItemIds.size}টি আইটেম একটি বান্ডেলে রূপান্তর হবে।", fontSize = 14.sp, color = Color.Gray)
+                        Text(stringResource(R.string.msg_merge_description, selectedItemIds.size), fontSize = 14.sp, color = Color.Gray)
 
-                        OutlinedTextField(
+                        AlwaysFloatingOutlinedTextField(
                             value = mergeTitleInput,
                             onValueChange = { mergeTitleInput = it },
-                            label = { Text("নতুন নাম (যেমন: মুদি দোকান)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            label = stringResource(R.string.hint_new_name_merge),
+                            themeColor = themeColor
                         )
-                        OutlinedTextField(
+                        AlwaysFloatingOutlinedTextField(
                             value = mergeTotalActualPriceInput,
                             onValueChange = { mergeTotalActualPriceInput = it },
-                            label = { Text("সর্বমোট আসল দাম") },
+                            label = stringResource(R.string.hint_total_actual_price),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
                             leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor),
-                            singleLine = true
+                            themeColor = themeColor
                         )
                     }
                 },
@@ -456,39 +436,38 @@ fun ShoppingListScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                         shape = RoundedCornerShape(50)
-                    ) { Text("একত্রিত করুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_merge), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showMergeDialog = false }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { showMergeDialog = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
 
-        // 4. Transfer to Main Dialog
+        // 4. Transfer to Main Dialog (Fixed Floating Labels)
         if (transferItem != null) {
             AlertDialog(
                 onDismissRequest = { transferItem = null },
                 containerColor = Color.White,
                 shape = RoundedCornerShape(24.dp),
                 icon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = themeColor, modifier = Modifier.size(40.dp)) },
-                title = { Text("মূল হিসাবে যুক্ত করুন", fontWeight = FontWeight.ExtraBold) },
+                title = { Text(stringResource(R.string.title_transfer_to_main), fontWeight = FontWeight.ExtraBold) },
                 text = {
                     Column {
-                        Text("এই খরচটি মেইন ব্যালেন্স থেকে কাটা হবে। ক্যাটাগরি নির্বাচন করুন:", color = Color.Gray, fontSize = 14.sp)
+                        Text(stringResource(R.string.msg_transfer_to_main_desc), color = Color.Gray, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         ExposedDropdownMenuBox(
                             expanded = categoryExpanded,
                             onExpandedChange = { categoryExpanded = !categoryExpanded }
                         ) {
-                            OutlinedTextField(
+                            AlwaysFloatingOutlinedTextField(
                                 value = selectedCategory,
                                 onValueChange = { },
                                 readOnly = true,
-                                label = { Text("ক্যাটাগরি") },
-                                modifier = Modifier.fillMaxWidth().menuAnchor(),
-                                shape = RoundedCornerShape(12.dp),
+                                label = stringResource(R.string.label_category),
+                                modifier = Modifier.menuAnchor(),
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor)
+                                themeColor = themeColor
                             )
                             ExposedDropdownMenu(
                                 expanded = categoryExpanded,
@@ -514,17 +493,17 @@ fun ShoppingListScreen(
                             if (selectedCategory.isNotBlank()) {
                                 shoppingViewModel.moveToMain(transferItem!!, selectedCategory)
                                 transferItem = null
-                                Toast.makeText(context, "মূল খরচে যুক্ত হয়েছে!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_moved_to_main_success), Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, "ক্যাটাগরি নির্বাচন করুন", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_transfer_category_required), Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                         shape = RoundedCornerShape(50)
-                    ) { Text("যুক্ত করুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_add), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { transferItem = null }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { transferItem = null }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
@@ -535,8 +514,8 @@ fun ShoppingListScreen(
                 onDismissRequest = { showClearDialog = false },
                 containerColor = Color.White,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("ফর্দ মুছবেন?", color = Color(0xFFEF4444), fontWeight = FontWeight.ExtraBold) },
-                text = { Text("ফর্দের সব আইটেম মুছে নতুন করে শুরু করতে চান?") },
+                title = { Text(stringResource(R.string.title_clear_shopping_list), color = Color(0xFFEF4444), fontWeight = FontWeight.ExtraBold) },
+                text = { Text(stringResource(R.string.msg_clear_shopping_list_desc)) },
                 confirmButton = {
                     Button(
                         onClick = {
@@ -545,13 +524,61 @@ fun ShoppingListScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                         shape = RoundedCornerShape(50)
-                    ) { Text("হ্যাঁ, মুছুন", fontWeight = FontWeight.Bold) }
+                    ) { Text(stringResource(R.string.btn_yes_clear), fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearDialog = false }) { Text("বাতিল", color = Color.Gray) }
+                    TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.btn_cancel), color = Color.Gray) }
                 }
             )
         }
+    }
+}
+
+// --- Custom Always Floating Label Component ---
+@Composable
+fun AlwaysFloatingOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    readOnly: Boolean = false,
+    themeColor: Color
+) {
+    Box(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            readOnly = readOnly,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = themeColor,
+                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.8f),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
+            ),
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon,
+            keyboardOptions = keyboardOptions,
+            singleLine = true
+        )
+
+        // Custom always-floating label text placed precisely over the border line
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = themeColor,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 16.dp)
+                .offset(y = (-8).dp)
+                .background(Color.White) // Matches Dialog background perfectly
+                .padding(horizontal = 4.dp)
+        )
     }
 }
 
@@ -681,7 +708,7 @@ fun ModernShoppingItemCard(
                         ) {
                             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF0D9488), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("মূল হিসাবে যুক্ত", color = Color(0xFF0D9488), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(stringResource(R.string.status_moved_to_main), color = Color(0xFF0D9488), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     } else {
                         Row(
@@ -695,7 +722,7 @@ fun ModernShoppingItemCard(
                         ) {
                             Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = "Move", tint = themeColor, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("মূল খরচে সরান", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = themeColor)
+                            Text(stringResource(R.string.btn_move_to_main), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = themeColor)
                         }
                     }
                 }

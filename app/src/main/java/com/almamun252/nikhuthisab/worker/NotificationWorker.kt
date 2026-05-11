@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.almamun252.nikhuthisab.MainActivity
+import com.almamun252.nikhuthisab.R
 
 class NotificationWorker(
     private val context: Context,
@@ -18,23 +19,36 @@ class NotificationWorker(
 
     override suspend fun doWork(): Result {
         // শিডিউলার থেকে পাঠানো ডেটাগুলো গ্রহণ করা
-        val personName = inputData.getString("title") ?: "অজ্ঞাত"
-        val amount = inputData.getFloat("amount", 0f)
         val type = inputData.getString("type") ?: "Lending"
-        val transactionId = inputData.getInt("transactionId", -1)
 
-        // লেনদেনের ধরন অনুযায়ী মেসেজ তৈরি করা
-        val message = if (type == "Lending") {
-            "আগামীকাল $personName এর ৳${amount.toInt()} দেওয়ার কথা।"
+        val title: String
+        val message: String
+        val notificationId: Int
+
+        // টাইপ অনুযায়ী মেসেজ এবং টাইটেল সেট করা (ডায়নামিক স্ট্রিং ব্যবহার করে)
+        if (type == "DailyReminder") {
+            title = context.getString(R.string.notif_daily_title)
+            message = context.getString(R.string.notif_daily_desc)
+            notificationId = 8000 // প্রতিদিনের রিমাইন্ডারের জন্য একটি নির্দিষ্ট আইডি
         } else {
-            "আগামীকাল $personName কে ৳${amount.toInt()} পরিশোধ করতে হবে।"
+            val personName = inputData.getString("title") ?: context.getString(R.string.notif_unknown_person)
+            val amount = inputData.getFloat("amount", 0f).toInt()
+            val transactionId = inputData.getInt("transactionId", -1)
+
+            title = context.getString(R.string.notif_payment_title)
+            message = if (type == "Lending") {
+                context.getString(R.string.notif_payment_lending, personName, amount)
+            } else {
+                context.getString(R.string.notif_payment_borrowing, personName, amount)
+            }
+            notificationId = transactionId.takeIf { it != -1 } ?: System.currentTimeMillis().toInt()
         }
 
-        // নোটিফিকেশন ফায়ার করা
+        // নোটিফিকেশন ফায়ার করা
         showNotification(
-            title = "পেমেন্ট রিমাইন্ডার!",
+            title = title,
             message = message,
-            notificationId = transactionId.takeIf { it != -1 } ?: System.currentTimeMillis().toInt()
+            notificationId = notificationId
         )
 
         return Result.success()
@@ -45,19 +59,18 @@ class NotificationWorker(
         val channelId = "reminder_channel"
 
         // Android 8.0 (API 26) বা তার ওপরের জন্য Notification Channel তৈরি করা বাধ্যতামূলক
-        // এখানে Build.VERSION_CODES.O ব্যবহার করা হয়েছে
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Transaction Reminders",
+                context.getString(R.string.notif_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "দেনা-পাওনা এবং বিলের রিমাইন্ডার"
+                description = context.getString(R.string.notif_channel_desc)
             }
             notificationManager.createNotificationChannel(channel)
         }
 
-        // নোটিফিকেশনে ক্লিক করলে অ্যাপ ওপেন হওয়ার জন্য Intent তৈরি করা
+        // নোটিফিকেশনে ক্লিক করলে অ্যাপ ওপেন হওয়ার জন্য Intent তৈরি করা
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -71,10 +84,9 @@ class NotificationWorker(
 
         // নোটিফিকেশনটি বিল্ড করা
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder) // এখানে পরে আপনার অ্যাপের আইকন দিতে পারেন
+            .setSmallIcon(android.R.drawable.ic_dialog_info) // এখানে পরে আপনার অ্যাপের আইকন দিতে পারেন
             .setContentTitle(title)
             .setContentText(message)
-            // IMPORTANCE_HIGH এর বদলে PRIORITY_HIGH ব্যবহার করা হয়েছে
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true) // ক্লিক করার পর নোটিফিকেশনটি মুছে যাবে

@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,17 +43,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// মেনু আইটেমগুলোর লিস্ট
-sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
-    object Dashboard : BottomNavItem("dashboard", "হোম", Icons.Rounded.Home)
-    object Transactions : BottomNavItem("transactions", "লেনদেন", Icons.Rounded.ReceiptLong)
-    object ShoppingList : BottomNavItem("shopping_list", "ফর্দ", Icons.Rounded.ShoppingCart) // <-- নতুন বটম আইটেম
-    object Profile : BottomNavItem("profile", "প্রোফাইল", Icons.Rounded.Person)
+// মেনু আইটেমগুলোর লিস্ট (String এর বদলে Resource ID ব্যবহার করা হয়েছে)
+sealed class BottomNavItem(val route: String, val titleResId: Int, val icon: ImageVector) {
+    object Dashboard : BottomNavItem("dashboard", R.string.nav_home, Icons.Rounded.Home)
+    object Transactions : BottomNavItem("transactions", R.string.nav_transactions, Icons.Rounded.ReceiptLong)
+    object ShoppingList : BottomNavItem("shopping_list", R.string.nav_shopping_list, Icons.Rounded.ShoppingCart)
+    object Profile : BottomNavItem("profile", R.string.nav_profile, Icons.Rounded.Person)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +69,7 @@ fun MainScreen(
     val items = listOf(
         BottomNavItem.Dashboard,
         BottomNavItem.Transactions,
-        BottomNavItem.ShoppingList, // <-- ফর্দ যোগ করা হয়েছে
+        BottomNavItem.ShoppingList,
         BottomNavItem.Profile
     )
 
@@ -97,30 +99,30 @@ fun MainScreen(
                     color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(elevation = 4.dp) // হালকা একটি শ্যাডো দেওয়া হলো
+                        .shadow(elevation = 4.dp)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding() // স্ট্যাটাস বারের নিচে কন্টেন্ট নামানোর জন্য
+                            .statusBarsPadding()
                             .padding(horizontal = 20.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // বাম পাশের অংশ (ডাইনামিক টাইটেল বা গ্রিটিং)
+                        // বাম পাশের অংশ (ডাইনামিক টাইটেল)
                         val titleText = when (currentRoute) {
-                            BottomNavItem.Dashboard.route -> "ড্যাশবোর্ড"
-                            "income_expense" -> "আয় ও ব্যয় খাতা"
-                            BottomNavItem.Transactions.route -> "সকল লেনদেন"
-                            BottomNavItem.ShoppingList.route -> "বাজারের ফর্দ" // <-- টাইটেল যুক্ত করা হয়েছে
-                            BottomNavItem.Profile.route -> "প্রোফাইল"
-                            else -> "ড্যাশবোর্ড"
+                            BottomNavItem.Dashboard.route -> stringResource(R.string.title_dashboard)
+                            "income_expense" -> stringResource(R.string.title_income_expense)
+                            BottomNavItem.Transactions.route -> stringResource(R.string.title_all_transactions)
+                            BottomNavItem.ShoppingList.route -> stringResource(R.string.title_shopping_list)
+                            BottomNavItem.Profile.route -> stringResource(R.string.nav_profile)
+                            else -> stringResource(R.string.title_dashboard)
                         }
 
                         Text(
                             text = titleText,
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium, // নরমাল ফন্ট
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
@@ -133,7 +135,7 @@ fun MainScreen(
                             ) {
                                 Icon(
                                     imageVector = if (isDarkMode) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                                    contentDescription = "থিম পরিবর্তন",
+                                    contentDescription = stringResource(R.string.desc_theme_toggle),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -151,7 +153,7 @@ fun MainScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Notifications,
-                                    contentDescription = "নোটিফিকেশন",
+                                    contentDescription = stringResource(R.string.desc_notifications),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -188,7 +190,6 @@ fun MainScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // নেভিগেশন বারের প্যাডিং Surface এর ভেতরে দেওয়া হলো
                             .navigationBarsPadding()
                             .padding(top = 6.dp, bottom = 6.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
@@ -239,7 +240,7 @@ fun MainScreen(
                     TransactionsScreen(navController = navController)
                 }
                 composable(BottomNavItem.ShoppingList.route) {
-                    ShoppingListScreen(navController = navController) // <-- নতুন রাউট বটম বারের জন্য
+                    ShoppingListScreen(navController = navController)
                 }
                 composable(BottomNavItem.Profile.route) {
                     ProfileScreen(navController = navController, onLogout = onLogout)
@@ -256,7 +257,6 @@ fun MainScreen(
                 composable("rough_khata") {
                     RoughKhataScreen(navController = navController)
                 }
-                // হোম স্ক্রিনের শর্টকাট থেকে আসার জন্য ডুপ্লিকেট রাউট (বিকল্প হিসেবে)
                 composable("shopping_list") {
                     ShoppingListScreen(navController = navController)
                 }
@@ -317,7 +317,7 @@ fun MainScreen(
                             .padding(bottom = 32.dp)
                     ) {
                         Text(
-                            text = "আপনার নোটিফিকেশন",
+                            text = stringResource(R.string.your_notifications),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -330,7 +330,7 @@ fun MainScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Rounded.Notifications, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("কোনো নতুন নোটিফিকেশন নেই।", color = Color.Gray, fontSize = 16.sp)
+                                    Text(stringResource(R.string.no_new_notifications), color = Color.Gray, fontSize = 16.sp)
                                 }
                             }
                         } else {
@@ -340,7 +340,7 @@ fun MainScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(upcomingReminders) { tx ->
-                                    val sdf = SimpleDateFormat("dd MMM, yyyy • hh:mm a", Locale("bn", "BD"))
+                                    val sdf = SimpleDateFormat("dd MMM, yyyy • hh:mm a", Locale.getDefault())
                                     val dateStr = tx.dueDate?.let { sdf.format(Date(it)) } ?: ""
 
                                     Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
@@ -348,13 +348,13 @@ fun MainScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             val msg = if (tx.type == "Lending") {
-                                                "${tx.title} এর ৳${tx.amount.toInt()} পরিশোধ করার কথা।"
+                                                stringResource(R.string.notif_lending, tx.title, tx.amount.toInt())
                                             } else {
-                                                "${tx.title} কে ৳${tx.amount.toInt()} পরিশোধ করতে হবে।"
+                                                stringResource(R.string.notif_borrowing, tx.title, tx.amount.toInt())
                                             }
                                             Text(msg, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text("ডেডলাইন: $dateStr", fontSize = 12.sp, color = Color.Gray)
+                                            Text(stringResource(R.string.deadline_label, dateStr), fontSize = 12.sp, color = Color.Gray)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -377,6 +377,7 @@ fun RowScope.BkashStyleNavItem(
     onClick: () -> Unit
 ) {
     val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+    val titleStr = stringResource(item.titleResId)
 
     Box(
         modifier = Modifier
@@ -395,13 +396,13 @@ fun RowScope.BkashStyleNavItem(
         ) {
             Icon(
                 imageVector = item.icon,
-                contentDescription = item.title,
+                contentDescription = titleStr,
                 tint = contentColor,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = item.title,
+                text = titleStr,
                 color = contentColor,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 11.sp

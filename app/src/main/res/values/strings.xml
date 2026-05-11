@@ -1,4 +1,355 @@
 <resources>
     <string name="app_name">Nikhut Hisab</string>
+
+    <!-- Google Sign-In Client ID (Very Important) -->
     <string name="default_web_client_id">4553808180-l9et4gh88aflnkvns082quf36htrpk9a.apps.googleusercontent.com</string>
+
+    <!-- Profile Screen Strings -->
+    <string name="default_user_name">User Name</string>
+    <string name="default_email">example@gmail.com</string>
+    <string name="data_backup_and_settings">Data Backup &amp; Settings</string>
+    <string name="change_language">Change Language</string>
+    <string name="change_language_desc">Change app language to English or Bangla</string>
+    <string name="backup_now">Backup Now</string>
+    <string name="backup_now_desc">Save all data to server</string>
+    <string name="auto_backup_title">Auto backup at 12 AM</string>
+    <string name="auto_backup_desc">Silently updates everyday</string>
+    <string name="logout">Logout</string>
+    <string name="select_language">Select Language</string>
+    <string name="choose_your_preferred_language">Choose your preferred language</string>
+    <string name="english">English</string>
+    <string name="bangla">বাংলা</string>
+    <string name="bengali">Bengali</string>
+
+
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_shopping_list">List</string>
+    <string name="nav_profile">Profile</string>
+
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_income_expense">Income &amp; Expense</string>
+    <string name="title_all_transactions">All Transactions</string>
+    <string name="title_shopping_list">Shopping List</string>
+
+    <string name="desc_theme_toggle">Toggle Theme</string>
+    <string name="desc_notifications">Notifications</string>
+
+    <string name="your_notifications">Your Notifications</string>
+    <string name="no_new_notifications">No new notifications.</string>
+    <string name="deadline_label">Deadline: %1$s</string>
+    <string name="notif_lending">Supposed to receive ৳%2$d from %1$s.</string>
+    <string name="notif_borrowing">Need to pay ৳%2$d to %1$s.</string>
+
+
+    <!-- Add Debt/Credit Screen Strings -->
+    <string name="title_update_lending">Update Receivable</string>
+    <string name="title_update_borrowing">Update Payable</string>
+    <string name="title_add_lending">New Receivable</string>
+    <string name="title_add_borrowing">New Payable</string>
+    <string name="label_lending_to">Lending to? (Name)</string>
+    <string name="label_borrowing_from">Borrowing from? (Name)</string>
+    <string name="label_amount_required">Amount *</string>
+    <string name="label_date_time_given">Date &amp; Time Given</string>
+    <string name="label_set_deadline_optional">Set Deadline (Optional)</string>
+    <string name="label_when_repay">When to repay?</string>
+    <string name="label_detailed_note_optional">Detailed Note (Optional)</string>
+    <string name="msg_valid_amount_required">Please enter a valid amount!</string>
+    <string name="msg_person_name_required">Person name is required!</string>
+    <string name="msg_updated_successfully">Updated successfully!</string>
+    <string name="msg_saved_successfully">Saved successfully!</string>
+    <string name="btn_update">Update</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_next_time">Next (Time)</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="title_select_time">Select Time</string>
+    <string name="title_select_deadline">Select Deadline</string>
+    <string name="title_deadline_time">Deadline Time</string>
+    <string name="cat_lent">Lent</string>
+    <string name="cat_borrowed">Borrowed</string>
+    <string name="desc_back">Back</string>
+    <string name="desc_clear">Clear</string>
+
+    <!-- Add Transaction Screen Strings -->
+    <string name="title_update_income">Update Income</string>
+    <string name="title_update_expense">Update Expense</string>
+    <string name="title_add_income">New Income</string>
+    <string name="title_add_expense">New Expense</string>
+    <string name="cat_other">Other</string>
+    <string name="label_expense_type">Select Expense Type:</string>
+    <string name="type_cash_expense">Cash Expense</string>
+    <string name="type_borrowed_expense">Borrowed Expense</string>
+    <string name="label_borrowed_from_required">Borrowed from? (Name) *</string>
+    <string name="label_repay_when_optional">When to repay? (Optional)</string>
+    <string name="label_repay_deadline">Repayment Deadline</string>
+    <string name="label_income_name_optional">Income Name (Optional)</string>
+    <string name="label_expense_name_optional">Expense Name (Optional)</string>
+    <string name="label_category">Category</string>
+    <string name="label_date_time">Date &amp; Time</string>
+    <string name="msg_lender_name_required">Please enter lender name!</string>
+    <string name="msg_added_successfully">Added successfully!</string>
+    <string name="msg_deleted_successfully">Deleted successfully!</string>
+    <string name="desc_delete">Delete</string>
+    <string name="borrowed_expense_note">Borrowed Expense: %1$s</string>
+    <string name="cat_loan">Loan/Borrow</string>
+
+    <!-- Category & Chips Defaults -->
+    <string name="cat_food">Food</string>
+    <string name="cat_transport">Transport</string>
+    <string name="cat_rent">Rent</string>
+    <string name="cat_shopping">Shopping</string>
+    <string name="cat_bills">Bills</string>
+    <string name="cat_health">Health</string>
+    <string name="cat_education">Education</string>
+    <string name="cat_salary">Salary</string>
+    <string name="cat_freelance">Freelancing</string>
+    <string name="cat_gift">Gift</string>
+    <string name="cat_business">Business</string>
+    <string name="chip_rickshaw">Rickshaw</string>
+    <string name="chip_bus">Bus</string>
+    <string name="chip_tea">Tea</string>
+    <string name="chip_internet">Internet</string>
+    <string name="chip_bonus">Bonus</string>
+
+
+    <!-- Budget Screen Strings -->
+    <string name="btn_new_budget">New Budget</string>
+    <string name="title_monthly_budget">Monthly Budget</string>
+    <string name="msg_no_budget_this_month">No budget set for this month!</string>
+    <string name="desc_set_budget_to_control">Set a budget to control your expenses</string>
+    <string name="msg_budget_deleted">Budget deleted successfully</string>
+    <string name="title_set_new_budget">Set New Budget</string>
+    <string name="title_update_budget">Update Budget</string>
+    <string name="label_select_category">Select Category</string>
+    <string name="label_budget_amount">Budget Amount</string>
+    <string name="msg_budget_exists">A budget for this category already exists!</string>
+    <string name="msg_budget_saved">Budget saved successfully</string>
+    <string name="status_budget_warning">Warning! Budget almost over</string>
+    <string name="status_spend_carefully">Spend carefully</string>
+    <string name="status_budget_safe">Budget is safe</string>
+    <string name="label_spent">Spent: ৳%1$d</string>
+    <string name="label_budget_colon">Budget: ৳%1$d</string>
+    <string name="msg_over_budget">Over budget by ৳%1$d!</string>
+    <string name="msg_remaining_budget">Remaining: ৳%1$d</string>
+    <string name="desc_options">Options</string>
+
+    <!-- Filter & Common Strings -->
+    <string name="filter_all_time">All Time</string>
+    <string name="filter_this_month">This Month</string>
+    <string name="filter_last_month">Last Month</string>
+    <string name="filter_last_6_months">Last 6 Months</string>
+    <string name="filter_custom_range">Custom Range</string>
+
+    <!-- Debt/Credit Screen Strings -->
+    <string name="btn_new_receivable">New Receivable</string>
+    <string name="btn_new_payable">New Payable</string>
+    <string name="title_debt_credit_ledger">Debt-Credit Ledger</string>
+    <string name="hint_search_receivable">Search receivable...</string>
+    <string name="hint_search_payable">Search payable...</string>
+    <string name="label_total_receivable">Total Receivable</string>
+    <string name="label_total_payable">Total Payable</string>
+    <string name="msg_no_receivable">No receivables yet!</string>
+    <string name="msg_no_payable">No payables yet!</string>
+    <string name="msg_click_bottom_button_to_add">Click the button below to add a new record</string>
+    <string name="status_fully_settled">Fully Settled ✅</string>
+    <string name="status_settled_short">Settled ✅</string>
+    <string name="label_total_amount">Total Amount</string>
+    <string name="label_settled_amount">Settled Amount</string>
+    <string name="label_remaining_amount">Remaining</string>
+    <string name="label_remaining_short">Left: ৳%1$d</string>
+    <string name="label_deadline_date">Deadline: %1$s</string>
+    <string name="btn_receive_payment">Receive Payment (Add)</string>
+    <string name="btn_give_payment">Give Payment (Add)</string>
+    <string name="title_delete_transaction">Delete Transaction?</string>
+    <string name="msg_confirm_delete_transaction">Are you sure you want to delete this? It cannot be recovered.</string>
+    <string name="btn_yes_delete">Yes, Delete</string>
+    <string name="title_update_payment">Update Payment</string>
+    <string name="hint_how_much">How much?</string>
+    <string name="msg_enter_valid_amount">Please enter a valid amount!</string>
+    <string name="title_select_date">Select Date</string>
+    <string name="hint_select_start_date">Select Start Date</string>
+    <string name="hint_select_end_date">Select End Date</string>
+    <string name="title_start_date"> Start Date</string>
+    <string name="title_end_date"> End Date</string>
+    <string name="btn_ok">OK</string>
+    <string name="tab_receivable">Receive</string>
+    <string name="tab_payable">Pay</string>
+
+    <string name="label_deadline">Deadline</string>
+    <string name="msg_routing_error">Routing Error</string>
+    <string name="label_remaining_amount_with_value">Remaining: ৳%1$s</string>
+
+    <!-- Income/Expense Screen Strings -->
+    <string name="hint_search">Search...</string>
+    <string name="label_total_income">Total Income</string>
+    <string name="label_total_expense">Total Expense</string>
+    <string name="tab_income">Income</string>
+    <string name="tab_expense">Expense</string>
+    <string name="msg_no_income">No income records!</string>
+    <string name="msg_no_expense">No expense records!</string>
+
+    <string name="btn_new_income">New Income</string>
+    <string name="btn_new_expense">New Expense</string>
+
+
+    <!-- Transactions & PDF Report Screen Strings -->
+    <string name="filter_all_type">All Types</string>
+    <string name="filter_custom">Custom 📅</string>
+    <string name="msg_no_transactions">No transactions found!</string>
+    <string name="btn_previous">Previous</string>
+    <string name="btn_next">Next</string>
+    <string name="label_page_info">Page %1$d / %2$d</string>
+    <string name="msg_generating_report">Generating report, please wait...</string>
+    <string name="title_download_report">Download Report</string>
+    <string name="step_transaction_type">1. Transaction Type</string>
+    <string name="step_time_period">2. Time Period</string>
+    <string name="step_category_optional">3. Category (Optional)</string>
+    <string name="filter_all">All</string>
+    <string name="filter_specific_month">Specific Month</string>
+    <string name="filter_custom_date">Custom Date</string>
+    <string name="filter_all_time_report">From Beginning</string>
+    <string name="filter_all_categories">All Categories</string>
+    <string name="btn_generate_download_pdf">Generate &amp; Download PDF</string>
+    <string name="report_income">Income Report</string>
+    <string name="report_expense">Expense Report</string>
+    <string name="report_lending">Receivable Report</string>
+    <string name="report_borrowing">Payable Report</string>
+    <string name="report_all_transactions">All Transactions Report</string>
+    <string name="report_custom_range">Custom Range</string>
+    <string name="report_all_time">From beginning to today</string>
+    <string name="report_file_prefix">Hisab</string>
+    <string name="btn_reset">Reset</string>
+    <string name="label_time_only">Time</string>
+    <string name="label_date_only">Date</string>
+    <string name="today">Today</string>
+    <string name="to">to</string>
+
+
+    <string name="label_note">Note</string>
+    <string name="btn_edit">Edit</string>
+    <string name="btn_delete">Delete</string>
+    <string name="desc_add">Add</string>
+    <string name="msg_enter_valid_info">Please enter valid information!</string>
+
+
+    <!-- Rough Khata Strings -->
+    <string name="title_rough_khata">Rough Khata</string>
+    <string name="subtitle_rough_khata">Temporary Expense List</string>
+    <string name="btn_new_rough_khata">New Rough Entry</string>
+    <string name="label_rough_total_expense">Total Rough Expense</string>
+    <string name="msg_rough_empty">Rough Khata is empty!</string>
+    <string name="msg_rough_empty_desc">Keep track of tours or group shopping here.</string>
+    <string name="label_rough_name_hint">Entry Name (e.g. Rickshaw)</string>
+    <string name="label_amount_only">Amount</string>
+    <string name="title_move_to_main_confirm">Move to Main Khata?</string>
+    <string name="msg_move_to_main_desc">This expense will be deducted from your main balance and added to the \'%1$s\' category. Are you sure?</string>
+    <string name="msg_moved_to_main_success">Added to main khata!</string>
+    <string name="btn_yes_add">Yes, Add</string>
+    <string name="title_clear_all_rough">Clear all entries?</string>
+    <string name="msg_clear_all_rough_desc">Tour or event over? You can clear all rough entries and start fresh.</string>
+    <string name="msg_all_deleted_successfully">All entries cleared</string>
+    <string name="label_note_prefix">Note: %1$s</string>
+    <string name="status_moved_to_main">Moved to main expenses</string>
+    <string name="btn_move_to_main">Move to Main</string>
+    <string name="btn_add">Add</string>
+    <string name="desc_clear_all">Clear All</string>
+
+
+    <!-- Shopping List Strings -->
+    <string name="default_merge_title">Groceries</string>
+    <string name="label_items_selected">%1$d selected</string>
+    <string name="desc_clear_all_items">Clear All</string>
+    <string name="label_estimated_cost_remaining">Est. Cost (Remaining)</string>
+    <string name="label_actual_cost_purchased">Actual Cost (Purchased)</string>
+    <string name="msg_shopping_list_empty">Shopping List is Empty</string>
+    <string name="msg_shopping_list_empty_desc">Add items before going to the market</string>
+    <string name="title_new_item">New Item</string>
+    <string name="hint_item_name">Item name (e.g., 5kg Rice)</string>
+    <string name="hint_estimated_price">Estimated price (Optional)</string>
+    <string name="btn_add_item">Add</string>
+    <string name="msg_enter_item_name">Please enter item name!</string>
+    <string name="title_enter_actual_price">Enter Actual Price</string>
+    <string name="hint_actual_price_of_item">Price of %1$s</string>
+    <string name="title_merge_items">Merge Items</string>
+    <string name="msg_merge_description">%1$d items will be bundled together.</string>
+    <string name="hint_new_name_merge">New name (e.g., Grocery Shop)</string>
+    <string name="hint_total_actual_price">Total actual price</string>
+    <string name="btn_merge">Merge</string>
+    <string name="title_transfer_to_main">Add to Main Khata</string>
+    <string name="msg_transfer_to_main_desc">This expense will be deducted from main balance. Select a category:</string>
+    <string name="msg_transfer_category_required">Please select a category</string>
+    <string name="title_clear_shopping_list">Clear List?</string>
+    <string name="msg_clear_shopping_list_desc">Do you want to delete all items and start fresh?</string>
+    <string name="btn_yes_clear">Yes, Clear</string>
+    <string name="desc_close">Close</string>
+    <string name="desc_merge">Merge</string>
+
+    <!-- PDF Generator Strings -->
+    <string name="label_balance">Balance</string>
+    <string name="label_income_expense_chart">Income-Expense Chart</string>
+    <string name="label_top_5_expenses">Top 5 Expenses</string>
+    <string name="label_date_header">Date</string>
+    <string name="label_name_header">Name</string>
+    <string name="label_type_header">Type</string>
+    <string name="label_amount_header">Amount</string>
+    <string name="label_generated_by">Generated by Nikhut Hisab</string>
+    <string name="msg_pdf_creation_failed">Failed to create file</string>
+    <string name="msg_pdf_saved">PDF saved: Downloads/%1$s</string>
+    <string name="msg_pdf_error">Error creating PDF: %1$s</string>
+
+
+    <!-- FirebaseAuthlmpl Strings -->
+    <string name="msg_user_not_found">User not found!</string>
+
+    <!-- AuthViewModel Strings -->
+    <string name="msg_login_failed">Login failed!</string>
+
+    <!-- ProfileViewModel Strings -->
+    <string name="never_backed_up">Never backed up</string>
+
+    <!-- Notification Strings -->
+    <string name="notif_daily_title">Tracked today\'s expenses?</string>
+    <string name="notif_daily_desc">Did you track all expenses and incomes today? Add them now if you missed any.</string>
+    <string name="notif_unknown_person">Unknown</string>
+    <string name="notif_payment_title">Payment Reminder!</string>
+    <string name="notif_payment_lending">Supposed to receive ৳%2$d from %1$s tomorrow.</string>
+    <string name="notif_payment_borrowing">Need to pay ৳%2$d to %1$s tomorrow.</string>
+    <string name="notif_channel_name">Transaction Reminders</string>
+    <string name="notif_channel_desc">Reminders for debts, credits, and bills</string>
+
+
+    <!-- Home screen Strings -->
+    <string name="title_start_tracking">Start Tracking!</string>
+    <string name="desc_start_tracking">Click the buttons below to add your first income or expense.</string>
+    <string name="btn_add_income_short">Add Income</string>
+    <string name="btn_add_expense_short">Add Expense</string>
+    <string name="label_current_balance">Current Balance</string>
+    <string name="label_total_loan">Total Loan</string>
+    <string name="btn_show_more">Show More</string>
+    <string name="btn_show_less">Close</string>
+    <string name="title_top_5_expenses">Top 5 Expenses</string>
+    <string name="title_recent_transactions">Recent Transactions</string>
+    <string name="msg_no_transactions_period">No transactions in this period.</string>
+    <string name="slice_income">Income</string>
+    <string name="slice_expense">Expense</string>
+    <string name="slice_balance">Left</string>
+    <string name="msg_no_data_pie_chart">No data for this period</string>
+
+    <string name="alert_overdue_lending">Warning: Overdue to receive ৳%2$d from %1$s!</string>
+    <string name="alert_overdue_borrowing">Warning: Overdue to pay ৳%2$d to %1$s!</string>
+    <string name="alert_today_lending">Supposed to receive ৳%2$d from %1$s today</string>
+    <string name="alert_today_borrowing">Need to pay ৳%2$d to %1$s today</string>
+    <string name="alert_upcoming_lending">Will receive ৳%2$d from %1$s on %3$s</string>
+    <string name="alert_upcoming_borrowing">Need to pay ৳%2$d to %1$s on %3$s</string>
+
+    <string name="shortcut_transactions">Transactions</string>
+    <string name="shortcut_income_expense">Income-Expense</string>
+    <string name="shortcut_debt_credit">Debt-Credit</string>
+    <string name="shortcut_budget">Budget</string>
+    <string name="shortcut_rough_khata">Rough Khata</string>
+    <string name="shortcut_shopping_list">Shopping List</string>
+
+
+
 </resources>
