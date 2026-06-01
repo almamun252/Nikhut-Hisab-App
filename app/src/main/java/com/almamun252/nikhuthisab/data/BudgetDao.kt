@@ -17,4 +17,10 @@ interface BudgetDao {
 
     @Query("DELETE FROM budgets WHERE id = :budgetId")
     suspend fun deleteBudget(budgetId: Int)
+
+    @Query("SELECT * FROM budgets")
+    fun getAllBudgets(): Flow<List<Budget>>
+
+    @Query("DELETE FROM budgets")
+    suspend fun clearAllBudgets()
 }

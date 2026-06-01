@@ -56,11 +56,14 @@ import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.almamun252.nikhuthisab.data.LanguagePreferences
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
+
     val context = LocalContext.current
     val allTransactions by viewModel.allTransactions.collectAsState()
     val dbBalance by viewModel.currentBalance.collectAsState()
@@ -70,6 +73,9 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
     LaunchedEffect(Unit) {
         isVisible = true
     }
+
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     // Dynamic Filter Strings
     val filterAllTime = stringResource(R.string.filter_all_time)
@@ -303,13 +309,14 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ২. ডাইনামিক ফিন্যান্সিয়াল সামারি কার্ডস এবং ব্লার স্লাইডিং বাটন
+            // ২. ডাইনামিক ফিন্যান্সিয়াল সামারি কার্ডস এবং ব্লার স্লাইডিং বাটন (🔥 কারেন্সি পাস করা হয়েছে)
             FinancialSummarySection(
                 totalIncome = totalIncome,
                 totalExpense = totalExpense,
                 balance = balance,
                 realReceivable = realReceivable,
-                realPayable = realPayable
+                realPayable = realPayable,
+                selectedCurrency = selectedCurrency
             )
 
             if (allTransactions.isNotEmpty()) {
@@ -317,9 +324,11 @@ fun HomeScreen(navController: NavController, viewModel: TransactionViewModel = v
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            TopExpensesSection(filteredTransactions)
+            // 🔥 কারেন্সি পাস করা হয়েছে
+            TopExpensesSection(filteredTransactions, selectedCurrency)
             Spacer(modifier = Modifier.height(40.dp))
-            RecentTransactionsSection(filteredTransactions)
+            // 🔥 কারেন্সি পাস করা হয়েছে
+            RecentTransactionsSection(filteredTransactions, selectedCurrency)
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
@@ -334,7 +343,8 @@ fun FinancialSummarySection(
     totalExpense: Float,
     balance: Float,
     realReceivable: Float,
-    realPayable: Float
+    realPayable: Float,
+    selectedCurrency: String
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -369,6 +379,7 @@ fun FinancialSummarySection(
                     title = it.title,
                     amount = it.amount,
                     color = it.color,
+                    selectedCurrency = selectedCurrency,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -421,6 +432,7 @@ fun FinancialSummarySection(
                                         title = it.title,
                                         amount = it.amount,
                                         color = it.color,
+                                        selectedCurrency = selectedCurrency,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -508,6 +520,7 @@ fun SummaryMiniCard(
     title: String,
     amount: Float,
     color: Color,
+    selectedCurrency: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -554,7 +567,7 @@ fun SummaryMiniCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 // দশমিক এড়ানোর জন্য toInt() ব্যবহার করা হয়েছে
-                text = "৳ ${amount.toInt()}",
+                text = "$selectedCurrency ${amount.toInt()}",
                 color = color,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
@@ -652,7 +665,7 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun TopExpensesSection(transactions: List<Transaction>) {
+fun TopExpensesSection(transactions: List<Transaction>,selectedCurrency: String) {
     val totalExpense = transactions.filter { tx: Transaction -> tx.type == "Expense" }.map { it.amount }.sum().toFloat()
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -702,6 +715,7 @@ fun TopExpensesSection(transactions: List<Transaction>) {
                     fillPercentage = fillPercentage,
                     displayPercentage = displayPercentage,
                     barColor = color,
+                    selectedCurrency = selectedCurrency,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -717,6 +731,7 @@ fun CustomVerticalBar(
     fillPercentage: Float,
     displayPercentage: Float,
     barColor: Color,
+    selectedCurrency: String,
     modifier: Modifier = Modifier
 ) {
     var animationPlayed by remember { mutableStateOf(false) }
@@ -805,19 +820,17 @@ fun CustomVerticalBar(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isPlaceholder) "-" else "৳${amount.toInt()}",
+                    text = if (isPlaceholder) "-" else "$selectedCurrency${amount.toInt()}",
                     color = if (isPlaceholder) Color.LightGray else Color.DarkGray,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
 }
 @Composable
-fun RecentTransactionsSection(transactions: List<Transaction>) {
+fun RecentTransactionsSection(transactions: List<Transaction>,selectedCurrency: String) {
     // স্ট্রিং রিসোর্স থেকে মানগুলো নিয়ে ভ্যারিয়েবলে রাখা হলো
     val filterAll = stringResource(R.string.filter_all)
     val filterIncome = stringResource(R.string.tab_income)
@@ -886,7 +899,7 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
             ) {
                 filteredTransactions.forEach { transaction ->
                     key(transaction.id) {
-                        RecentTransactionCard(transaction)
+                        RecentTransactionCard(transaction,selectedCurrency)
                     }
                 }
             }
@@ -895,7 +908,7 @@ fun RecentTransactionsSection(transactions: List<Transaction>) {
 }
 
 @Composable
-fun RecentTransactionCard(transaction: Transaction) {
+fun RecentTransactionCard(transaction: Transaction,selectedCurrency: String) {
 
     val (themeColor, amountPrefix) = when (transaction.type) {
         "Income" -> Pair(Color(0xFF10B981), "+")
@@ -1020,7 +1033,7 @@ fun RecentTransactionCard(transaction: Transaction) {
                 Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
-                    text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                    text = "$amountPrefix $selectedCurrency${transaction.amount.toInt()}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = themeColor
@@ -1429,7 +1442,7 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = stringResource(R.string.msg_no_data_pie_chart), // ডাইনামিক স্ট্রিং
+                text = stringResource(R.string.msg_no_data_pie_chart),
                 color = Color.Gray,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -1442,7 +1455,6 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
     val expPct = (expense / totalVolume) * 100
     val balPct = if (balance > 0) (balance / totalVolume) * 100 else 0f
 
-    // হার্ডকোড করা স্ট্রিং এর বদলে stringResource ব্যবহার করা হয়েছে
     val slices = listOf(
         SliceData(stringResource(R.string.slice_income), income, incPct, Color(0xFFFFCA28)),
         SliceData(stringResource(R.string.slice_expense), expense, expPct, Color(0xFFFF7043)),
@@ -1450,110 +1462,71 @@ fun CustomUnevenPieChart(income: Float, expense: Float, balance: Float) {
     ).filter { it.value > 0f }
 
     val sortedSlices = slices.sortedByDescending { it.value }
-
     val textMeasurer = rememberTextMeasurer()
     var animationPlayed by remember { mutableStateOf(false) }
 
     val animatableSweep by animateFloatAsState(
         targetValue = if (animationPlayed) 360f else 0f,
-        animationSpec = tween(1200),
+        animationSpec = tween(1200, easing = FastOutSlowInEasing),
         label = "pie_anim"
     )
 
     LaunchedEffect(key1 = totalVolume) { animationPlayed = true }
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
+    Canvas(modifier = Modifier.fillMaxSize().padding(32.dp)) {
         val canvasCenter = center
-        val maxRadius = size.minDimension / 2.8f
-
+        val maxRadius = size.minDimension / 2f
         var startAngle = -90f
 
-        // গ্লো ইফেক্টের জন্য Paint অবজেক্ট তৈরি করা হচ্ছে
         val paintWithGlow = android.graphics.Paint().apply {
             isAntiAlias = true
             style = android.graphics.Paint.Style.FILL
         }
 
-        drawIntoCanvas { canvas ->
-            slices.forEach { slice ->
-                val sweepAngle = (slice.value / totalVolume) * animatableSweep
+        slices.forEach { slice ->
+            val sweepAngle = (slice.value / totalVolume) * animatableSweep
+            val rank = sortedSlices.indexOf(slice)
+            val sliceRadius = maxRadius * (1f - (rank * 0.08f)) // স্লাইসগুলোকে ক্রমানুসারে ছোট দেখানো
 
-                val rank = sortedSlices.indexOf(slice)
-                val radiusMultiplier = when(rank) {
-                    0 -> 1.0f
-                    1 -> 0.88f
-                    else -> 0.78f
-                }
-                val sliceRadius = maxRadius * radiusMultiplier
+            val shadowColorArgb = slice.color.copy(alpha = 0.4f).toArgb()
+            paintWithGlow.color = slice.color.toArgb()
+            paintWithGlow.setShadowLayer(20f, 0f, 0f, shadowColorArgb)
 
-                // গ্লো শ্যাডোর রঙ নির্ধারণ (স্লাইসের রঙের কিছুটা স্বচ্ছ সংস্করণ)
-                val shadowColorArgb = slice.color.copy(alpha = 0.5f).toArgb()
+            val rect = Rect(
+                Offset(canvasCenter.x - sliceRadius, canvasCenter.y - sliceRadius),
+                Size(sliceRadius * 2, sliceRadius * 2)
+            )
 
-                // নেটিভ Paint-এ শ্যাডো লেয়ার সেট করা হচ্ছে
-                // parameters: blurRadius, offsetX, offsetY, shadowColor
-                paintWithGlow.setShadowLayer(
-                    30f, // গ্লো কতটা ছড়াবে (blur)
-                    0f,  // X অক্ষের দিকে সরবে না
-                    0f,  // Y অক্ষের দিকে সরবে না (চারপাশে সমানভাবে ছড়াবে)
-                    shadowColorArgb
-                )
-                paintWithGlow.color = slice.color.toArgb()
-
-                // আর্কের জন্য রেক্টেঙ্গেল নির্ধারণ
-                val rect = Rect(
-                    Offset(canvasCenter.x - sliceRadius, canvasCenter.y - sliceRadius),
-                    Size(sliceRadius * 2, sliceRadius * 2)
-                )
-
-                // নেটিভ ক্যানভাসে গ্লো শ্যাডো সহ আর্ক আঁকা হচ্ছে
+            drawIntoCanvas { canvas ->
                 canvas.nativeCanvas.drawArc(
                     rect.left, rect.top, rect.right, rect.bottom,
                     startAngle, sweepAngle,
-                    true, // useCenter
-                    paintWithGlow
+                    true, paintWithGlow
+                )
+            }
+
+            // লেবেল আঁকা
+            if (animatableSweep == 360f && slice.percentage > 5f) {
+                val midAngle = (startAngle + sweepAngle / 2) * (Math.PI / 180f)
+                val lineStartRadius = sliceRadius * 0.9f
+                val lineEndRadius = sliceRadius + 20f
+
+                val startX = canvasCenter.x + (cos(midAngle) * lineStartRadius).toFloat()
+                val startY = canvasCenter.y + (sin(midAngle) * lineStartRadius).toFloat()
+                val endX = canvasCenter.x + (cos(midAngle) * lineEndRadius).toFloat()
+                val endY = canvasCenter.y + (sin(midAngle) * lineEndRadius).toFloat()
+
+                drawLine(slice.color, Offset(startX, startY), Offset(endX, endY), 2f)
+
+                val labelText = textMeasurer.measure(
+                    text = slice.name,
+                    style = TextStyle(color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 )
 
-                // লেবেল এবং লাইন আঁকার লজিক (আগের মতোই রাখা হয়েছে)
-                if (animatableSweep == 360f && slice.percentage > 0f) {
-                    val midAngle = (startAngle + sweepAngle / 2) * (Math.PI / 180f)
-
-                    val lineStartRadius = sliceRadius * 0.85f
-                    val extension = when {
-                        slice.percentage < 5f -> 45f
-                        slice.percentage < 15f -> 30f
-                        else -> 15f
-                    }
-
-                    val lineEndRadius = sliceRadius + extension
-
-                    val startX = canvasCenter.x + (cos(midAngle) * lineStartRadius).toFloat()
-                    val startY = canvasCenter.y + (sin(midAngle) * lineStartRadius).toFloat()
-
-                    val endX = canvasCenter.x + (cos(midAngle) * lineEndRadius).toFloat()
-                    val endY = canvasCenter.y + (sin(midAngle) * lineEndRadius).toFloat()
-
-                    val isRightSide = cos(midAngle) >= 0
-                    val elbowLength = 15f
-                    val elbowX = endX + if (isRightSide) elbowLength else -elbowLength
-
-                    // লাইনগুলো স্লাইসের রঙে আঁকা হচ্ছে
-                    drawLine(color = slice.color, start = Offset(startX, startY), end = Offset(endX, endY), strokeWidth = 3f)
-                    drawLine(color = slice.color, start = Offset(endX, endY), end = Offset(elbowX, endY), strokeWidth = 3f)
-
-                    val labelText = textMeasurer.measure(
-                        text = slice.name,
-                        style = TextStyle(color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                    )
-
-                    val textX = if (isRightSide) elbowX + 4f else elbowX - labelText.size.width - 4f
-                    val textY = endY - labelText.size.height / 2f
-
-                    // টেক্সট লেবেল আঁকা হচ্ছে
-                    drawText(textLayoutResult = labelText, topLeft = Offset(textX, textY))
-                }
-
-                startAngle += sweepAngle
+                val textX = if (cos(midAngle) >= 0) endX + 5f else endX - labelText.size.width - 5f
+                drawText(labelText, topLeft = Offset(textX, endY - labelText.size.height / 2))
             }
+            startAngle += sweepAngle
         }
     }
 }

@@ -308,16 +308,6 @@
     <!-- ProfileViewModel Strings -->
     <string name="never_backed_up">Never backed up</string>
 
-    <!-- Notification Strings -->
-    <string name="notif_daily_title">Tracked today\'s expenses?</string>
-    <string name="notif_daily_desc">Did you track all expenses and incomes today? Add them now if you missed any.</string>
-    <string name="notif_unknown_person">Unknown</string>
-    <string name="notif_payment_title">Payment Reminder!</string>
-    <string name="notif_payment_lending">Supposed to receive ৳%2$d from %1$s tomorrow.</string>
-    <string name="notif_payment_borrowing">Need to pay ৳%2$d to %1$s tomorrow.</string>
-    <string name="notif_channel_name">Transaction Reminders</string>
-    <string name="notif_channel_desc">Reminders for debts, credits, and bills</string>
-
 
     <!-- Home screen Strings -->
     <string name="title_start_tracking">Start Tracking!</string>
@@ -349,6 +339,47 @@
     <string name="shortcut_budget">Budget</string>
     <string name="shortcut_rough_khata">Rough Khata</string>
     <string name="shortcut_shopping_list">Shopping List</string>
+
+    <!-- Profile screen Strings -->
+    <string name="guest_user">Guest User</string>
+    <string name="login_desc">Login with Google to backup your data</string>
+    <string name="login_with_google">Login with Google</string>
+    <string name="login_required_backup">Login to backup data!</string>
+    <string name="login_required_restore">Login to restore data!</string>
+    <string name="login_required_auto_backup">Login to enable auto backup!</string>
+    <string name="logout_confirm_title">Logout</string>
+    <string name="logout_confirm_desc">Are you sure you want to logout?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <!-- Login Screen Strings -->
+    <string name="app_name_display">Nikhut Hisab</string>
+    <string name="app_tagline">Keep all your accounts safe online.</string>
+    <string name="start_with_google">Start with Google</string>
+    <string name="continue_without_login">Continue without login</string>
+    <string name="login_error">Login Error</string>
+
+    <string name="never_show_again">Don\'t show again</string>
+
+    <!-- Backup Strings -->
+    <string name="backup_notification_channel_name">Data Backup</string>
+    <string name="backup_notification_title">Backing up data…</string>
+    <string name="backup_notification_desc">Please wait, uploading your backup to Google Drive.</string>
+    <string name="backup_success_title">Backup Successful</string>
+    <string name="backup_success_desc">Your financial data is now safe online.</string>
+
+    <!-- NotificationWorker Strings -->
+    <string name="notif_channel_name">Reminders</string>
+    <string name="notif_channel_desc">Daily and transaction reminders</string>
+
+    <string name="notif_daily_title">Time to update your accounts!</string>
+    <string name="notif_daily_desc">Don\'t forget to add today\'s income and expenses.</string>
+
+    <string name="notif_unknown_person">Someone</string>
+    <string name="notif_payment_title">Payment Reminder</string>
+    <!-- %1$s = Name, %2$d = Amount -->
+    <string name="notif_payment_lending">You need to collect %2$d Taka from %1$s.</string>
+    <string name="notif_payment_borrowing">You need to pay %2$d Taka to %1$s.</string>
 
 
 

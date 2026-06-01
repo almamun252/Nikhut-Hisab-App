@@ -1,12 +1,19 @@
 package com.almamun252.nikhuthisab.viewmodel
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.repository.AuthRepository
 import com.almamun252.nikhuthisab.repository.FirebaseAuthImpl
-import kotlinx.coroutines.delay
+import com.almamun252.nikhuthisab.utils.BackupRestoreManager
+import com.almamun252.nikhuthisab.utils.GoogleDriveHelper
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +23,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// প্রোফাইলের সমস্ত ডেটা একসাথে রাখার জন্য Data Class
 data class ProfileUiState(
     val isLoggedIn: Boolean = false,
     val userName: String = "",
@@ -28,86 +34,209 @@ data class ProfileUiState(
     val isRestoring: Boolean = false
 )
 
-// ViewModel এর বদলে AndroidViewModel ব্যবহার করা হচ্ছে যাতে Application Context পাওয়া যায়
 class ProfileViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    // আসল ইউজারের ডেটা পাওয়ার জন্য AuthRepository কল করা হলো
     private val repository: AuthRepository = FirebaseAuthImpl(application)
+    private val driveHelper = GoogleDriveHelper(application)
+    private val backupManager = BackupRestoreManager(application)
 
-    // UI State Flow (Compose এখান থেকে ডেটা পড়বে)
+    // --- নোটিফিকেশন সেটআপ ---
+    private val notificationManager = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val channelId = "manual_backup_channel"
+    private val notificationId = 102
+
     private val _uiState = MutableStateFlow(
         ProfileUiState(
-            // ডিফল্ট স্ট্রিং সেট করা হলো
-            lastBackupTime = application.getString(R.string.never_backed_up)
+            lastBackupTime = "Checking backup..."
         )
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
-        // অ্যাপ চালু হলেই ফায়ারবেস থেকে আসল ইউজারের ডেটা (নাম, ইমেইল) নিয়ে আসবে
+        createNotificationChannel() // অ্যাপ চালুর সময় চ্যানেল তৈরি করে নেবে
+
         viewModelScope.launch {
             repository.currentUser.collect { user ->
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoggedIn = user != null,
-                        userName = user?.displayName ?: application.getString(R.string.default_user_name),
-                        userEmail = user?.email ?: application.getString(R.string.default_email)
+                        userName = user?.displayName ?: application.getString(R.string.guest_user),
+                        userEmail = user?.email ?: application.getString(R.string.login_desc)
                     )
+                }
+
+                if (user != null) {
+                    fetchLastBackupTimeFromDrive()
+                } else {
+                    _uiState.update { it.copy(lastBackupTime = application.getString(R.string.never_backed_up)) }
                 }
             }
         }
     }
 
-    // --- Google Auth Actions ---
+    private fun fetchLastBackupTimeFromDrive() {
+        viewModelScope.launch {
+            try {
+                val account = GoogleSignIn.getLastSignedInAccount(getApplication())
+                if (account != null) {
+                    val driveService = driveHelper.getDriveService(account)
+                    val lastModifiedTimeMs = driveHelper.getLastBackupTime(driveService)
+
+                    if (lastModifiedTimeMs != null) {
+                        val sdf = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+                        val formattedTime = sdf.format(Date(lastModifiedTimeMs))
+                        _uiState.update { it.copy(lastBackupTime = formattedTime) }
+                    } else {
+                        _uiState.update { it.copy(lastBackupTime = getApplication<Application>().getString(R.string.never_backed_up)) }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(lastBackupTime = "Sync Error") }
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             repository.signOut()
-            // State অটোমেটিক আপডেট হবে কারণ আমরা repository.currentUser.collect করছি
+            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+            ).build()
+            val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(
+                getApplication<Application>(), gso
+            )
+            googleSignInClient.signOut().addOnCompleteListener {
+                _uiState.update { it.copy(lastBackupTime = getApplication<Application>().getString(R.string.never_backed_up)) }
+            }
         }
     }
 
     // --- Backup & Restore Actions ---
-    fun triggerBackup(onSuccess: () -> Unit) {
+    fun triggerBackup(onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isBackingUp = true) }
+            showProgressNotification(getApplication<Application>().getString(R.string.backup_notification_title))
 
-            // TODO: Google Drive API তে ফাইল আপলোড করার কোড এখানে বসবে
-            delay(2000) // ডেমো নেটওয়ার্ক ডিলে
+            try {
+                val account = GoogleSignIn.getLastSignedInAccount(getApplication())
 
-            // Locale.getDefault() ব্যবহার করা হয়েছে যাতে টাইম ফরম্যাট ভাষা অনুযায়ী হয়
-            val sdf = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
-            val currentTime = sdf.format(Date())
+                if (account != null) {
+                    val driveService = driveHelper.getDriveService(account)
+                    val jsonData = backupManager.createBackupJson()
+                    val isSuccess = driveHelper.uploadBackup(driveService, jsonData)
 
-            _uiState.update { it.copy(
-                isBackingUp = false,
-                lastBackupTime = currentTime
-            ) }
-            onSuccess()
+                    if (isSuccess) {
+                        fetchLastBackupTimeFromDrive()
+                        _uiState.update { it.copy(isBackingUp = false) }
+                        showSuccessNotification(getApplication<Application>().getString(R.string.backup_success_title))
+                        onResult(true, "Backup Successful!")
+                    } else {
+                        _uiState.update { it.copy(isBackingUp = false) }
+                        notificationManager.cancel(notificationId) // ফেইল হলে নোটিফিকেশন মুছে যাবে
+                        onResult(false, "Failed to upload backup.")
+                    }
+                } else {
+                    _uiState.update { it.copy(isBackingUp = false) }
+                    notificationManager.cancel(notificationId)
+                    onResult(false, "Google account not found. Please log in again.")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(isBackingUp = false) }
+                notificationManager.cancel(notificationId)
+                onResult(false, "Error: ${e.message}")
+            }
         }
     }
 
-    fun triggerRestore(onSuccess: () -> Unit) {
+    fun triggerRestore(onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isRestoring = true) }
+            showProgressNotification("Restoring data...")
 
-            // TODO: Google Drive থেকে ফাইল ডাউনলোড এবং লোকাল ডাটাবেস রিপ্লেস করার কোড
-            delay(3000) // ডেমো ডাউনলোড ডিলে
+            try {
+                val account = GoogleSignIn.getLastSignedInAccount(getApplication())
 
-            _uiState.update { it.copy(isRestoring = false) }
-            onSuccess()
+                if (account != null) {
+                    val driveService = driveHelper.getDriveService(account)
+                    val jsonString = driveHelper.downloadBackup(driveService)
+
+                    if (jsonString != null) {
+                        val isSuccess = backupManager.restoreFromJson(jsonString)
+
+                        if (isSuccess) {
+                            _uiState.update { it.copy(isRestoring = false) }
+                            showSuccessNotification("Restore Successful!")
+                            onResult(true, "Restore Successful! All data recovered.")
+                        } else {
+                            _uiState.update { it.copy(isRestoring = false) }
+                            notificationManager.cancel(notificationId)
+                            onResult(false, "Failed to save restored data to database.")
+                        }
+                    } else {
+                        _uiState.update { it.copy(isRestoring = false) }
+                        notificationManager.cancel(notificationId)
+                        onResult(false, "No backup file found on Google Drive.")
+                    }
+                } else {
+                    _uiState.update { it.copy(isRestoring = false) }
+                    notificationManager.cancel(notificationId)
+                    onResult(false, "Google account not found. Please log in again.")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(isRestoring = false) }
+                notificationManager.cancel(notificationId)
+                onResult(false, "Error: ${e.message}")
+            }
         }
     }
 
-    // --- App Settings Actions ---
+    // --- Notification Helpers ---
+    private fun showProgressNotification(title: String) {
+        val notification = NotificationCompat.Builder(getApplication(), channelId)
+            .setContentTitle(title)
+            .setContentText("Please wait...")
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // আপনার অ্যাপের আইকন দিন
+            .setOngoing(true)
+            .setProgress(0, 0, true) // Indeterminate Progress
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
+    private fun showSuccessNotification(title: String) {
+        val notification = NotificationCompat.Builder(getApplication(), channelId)
+            .setContentTitle(title)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setProgress(0, 0, false) // Progress বার রিমুভ
+            .setOngoing(false) // Swipe করে কাটা যাবে
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Manual Backup/Restore",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
     fun toggleAutoBackup(enabled: Boolean) {
-        // TODO: DataStore এ Auto Backup সেটিং সেভ করতে হবে
         _uiState.update { it.copy(isAutoBackupEnabled = enabled) }
     }
 
     fun toggleDarkMode(enabled: Boolean) {
-        // TODO: DataStore এ Dark Mode সেটিং সেভ করতে হবে
         _uiState.update { it.copy(isDarkModeEnabled = enabled) }
     }
 }

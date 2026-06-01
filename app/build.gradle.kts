@@ -15,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "4.1.2"
+        versionName = "4.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,9 +42,21 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // 🔥 এখানে packaging ব্লকটি যুক্ত করা হয়েছে DEPENDENCIES এরর ঠিক করার জন্য
+    packaging {
+        resources {
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/license.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/notice.txt"
+            excludes += "META-INF/ASL2.0"
+        }
+    }
 }
-
-
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -73,8 +85,10 @@ dependencies {
     // --- Vico Charts ---
     implementation("com.patrykandpatrick.vico:compose-m3:1.15.0")
     implementation("com.patrykandpatrick.vico:core:1.15.0")
+
     //--- for icons
     implementation("androidx.compose.material:material-icons-extended")
+
     //--- for Notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
@@ -92,13 +106,24 @@ dependencies {
     // Firebase Authentication
     implementation("com.google.firebase:firebase-auth")
 
-    // Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
-
     // For Coroutines .await() error fix
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation("androidx.appcompat:appcompat:1.6.1")
+
+    // --- Google Sign-In & Drive Backup Dependencies ---
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+
+    // Google Drive API & API Client
+    implementation("com.google.api-client:google-api-client-android:1.33.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
+
+    // Gson Factory (JSON এর জন্য)
+    implementation("com.google.http-client:google-http-client-gson:1.42.3")
+    implementation("com.google.code.gson:gson:2.10.1")
 }

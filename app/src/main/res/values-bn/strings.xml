@@ -305,16 +305,6 @@
     <!-- ProfileViewModel Strings -->
     <string name="never_backed_up">কখনো ব্যাকআপ করা হয়নি</string>
 
-    <!-- Notification Strings -->
-    <string name="notif_daily_title">আজকের হিসাব রেখেছেন?</string>
-    <string name="notif_daily_desc">সারাদিনের সব খরচ বা আয় লেখা হয়েছে তো? কিছু বাদ থাকলে এখনই যোগ করে নিন।</string>
-    <string name="notif_unknown_person">অজ্ঞাত</string>
-    <string name="notif_payment_title">পেমেন্ট রিমাইন্ডার!</string>
-    <string name="notif_payment_lending">আগামীকাল %1$s এর ৳%2$d দেওয়ার কথা।</string>
-    <string name="notif_payment_borrowing">আগামীকাল %1$s কে ৳%2$d পরিশোধ করতে হবে।</string>
-    <string name="notif_channel_name">লেনদেন রিমাইন্ডার</string>
-    <string name="notif_channel_desc">দেনা-পাওনা এবং বিলের রিমাইন্ডার</string>
-
 
     <!-- Home screen Strings -->
     <string name="title_start_tracking">হিসাব শুরু করুন!</string>
@@ -346,5 +336,47 @@
     <string name="shortcut_budget">বাজেট</string>
     <string name="shortcut_rough_khata">রাফ খাতা</string>
     <string name="shortcut_shopping_list">বাজারের ফর্দ</string>
+
+    <!-- Profile screen Strings -->
+    <string name="guest_user">গেস্ট ইউজার</string>
+    <string name="login_desc">ডেটা ব্যাকআপ রাখতে গুগল দিয়ে লগ-ইন করুন</string>
+    <string name="login_with_google">গুগল দিয়ে লগ-ইন করুন</string>
+    <string name="login_required_backup">ব্যাকআপ সুবিধা পেতে গুগল দিয়ে লগ-ইন করুন!</string>
+    <string name="login_required_restore">ডেটা রিস্টোর করতে গুগল দিয়ে লগ-ইন করুন!</string>
+    <string name="login_required_auto_backup">অটো ব্যাকআপ চালু করতে লগ-ইন করুন!</string>
+    <string name="logout_confirm_title">লগ-আউট</string>
+    <string name="logout_confirm_desc">আপনি কি নিশ্চিত যে আপনি লগ-আউট করতে চান?</string>
+    <string name="yes">হ্যাঁ</string>
+    <string name="no">না</string>
+
+
+    <!-- Login Screen Strings -->
+    <string name="app_name_display">নিখুঁত হিসাব</string>
+    <string name="app_tagline">আপনার সব হিসাব অনলাইনে নিরাপদে রাখুন।</string>
+    <string name="start_with_google">Google দিয়ে শুরু করুন</string>
+    <string name="continue_without_login">লগ-ইন ছাড়াই চালিয়ে যান</string>
+    <string name="login_error">লগ-ইন এরর</string>
+
+    <string name="never_show_again">আর কখনো দেখাবেন না</string>
+
+    <!-- Backup Strings -->
+    <string name="backup_notification_channel_name">ডেটা ব্যাকআপ</string>
+    <string name="backup_notification_title">ডেটা ব্যাকআপ হচ্ছে…</string>
+    <string name="backup_notification_desc">অনুগ্রহ করে অপেক্ষা করুন, গুগল ড্রাইভে ব্যাকআপ আপলোড হচ্ছে।</string>
+    <string name="backup_success_title">ব্যাকআপ সফল হয়েছে</string>
+    <string name="backup_success_desc">আপনার সব হিসাব অনলাইনে নিরাপদে সেভ করা হয়েছে।</string>
+
+    <!-- NotificationWorker Strings -->
+    <string name="notif_channel_name">রিমাইন্ডার</string>
+    <string name="notif_channel_desc">প্রতিদিনের এবং লেনদেনের রিমাইন্ডার</string>
+
+    <string name="notif_daily_title">হিসাব আপডেট করার সময় হয়েছে!</string>
+    <string name="notif_daily_desc">আপনার আজকের আয়-ব্যয় যোগ করতে ভুলবেন না।</string>
+
+    <string name="notif_unknown_person">কেউ একজন</string>
+    <string name="notif_payment_title">লেনদেন রিমাইন্ডার</string>
+    <!-- %1$s = নাম, %2$d = টাকার পরিমাণ -->
+    <string name="notif_payment_lending">আপনার %1$s-এর কাছ থেকে %2$d টাকা পাওয়ার কথা।</string>
+    <string name="notif_payment_borrowing">আপনার %1$s-কে %2$d টাকা দেওয়ার কথা।</string>
 
 </resources>

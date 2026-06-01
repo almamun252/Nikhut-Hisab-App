@@ -1,12 +1,20 @@
 package com.almamun252.nikhuthisab.view
 
 import android.app.Activity
+import android.content.Context
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn // 🔥 নতুন ইম্পোর্ট
+import androidx.compose.foundation.lazy.items // 🔥 নতুন ইম্পোর্ট
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -20,37 +28,85 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.CurrencyManager // 🔥 নতুন ইম্পোর্ট
 import com.almamun252.nikhuthisab.data.LanguagePreferences
-import com.google.firebase.auth.FirebaseAuth
+import com.almamun252.nikhuthisab.viewmodel.AuthViewModel
+import com.almamun252.nikhuthisab.viewmodel.ProfileViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import com.google.api.services.drive.DriveScopes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
+    viewModel: ProfileViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(),
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val auth = FirebaseAuth.getInstance()
-    val user = auth.currentUser
 
-    // ল্যাঙ্গুয়েজ প্রেফারেন্স ইনিশিয়ালাইজ করা
+    // 🔥 রিয়েল-টাইমে ইউজারের স্টেট ট্র্যাক করা হচ্ছে (লগ-ইন হওয়ামাত্রই UI আপডেট হবে)
+    val authUser by authViewModel.currentUser.collectAsState()
+    val isGuestMode = authUser == null
+
+    val uiState by viewModel.uiState.collectAsState()
     val languagePreferences = remember { LanguagePreferences(context) }
 
-    // স্টেট মেইনটেইন করার জন্য
-    var autoBackupEnabled by remember { mutableStateOf(true) }
+    // 🔥 বর্তমান কারেন্সি স্টেট রিড করা হচ্ছে
+    val currentCurrency by languagePreferences.selectedCurrency.collectAsState(initial = "৳")
+
     var showLanguageSheet by remember { mutableStateOf(false) }
+    var showCurrencySheet by remember { mutableStateOf(false) } // 🔥 কারেন্সি শিটের স্টেট
+    var showLoginSheet by remember { mutableStateOf(false) }
+
+    // 🔥 লগ-আউট কনফার্মেশন ডায়ালগের জন্য স্টেট
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    val scrollState = rememberScrollState()
+
+    // --- Google Auth Launcher ---
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                account.idToken?.let { token ->
+                    authViewModel.signInWithGoogle(token)
+                }
+            } catch (e: ApiException) {
+                Toast.makeText(context, "Login Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // 🔥 লগ-ইন সফল হলে পপ-আপ নিজে থেকে বন্ধ হবে এবং গেস্ট মোড মুছে যাবে
+    LaunchedEffect(authUser) {
+        if (authUser != null) {
+            showLoginSheet = false
+            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPref.edit().putBoolean("is_guest_mode", false).apply()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC)) // মডার্ন স্লেট ব্যাকগ্রাউন্ড
+            .background(Color(0xFFF8FAFC))
+            .verticalScroll(scrollState)
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -58,7 +114,12 @@ fun ProfileScreen(
 
         // --- প্রোফাইল কার্ড (User Info) ---
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .clickable(enabled = isGuestMode) {
+                    showLoginSheet = true
+                },
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -67,7 +128,7 @@ fun ProfileScreen(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // প্রোফাইল পিকচার (Google থেকে)
+                // প্রোফাইল পিকচার
                 Box(
                     modifier = Modifier
                         .size(100.dp)
@@ -75,7 +136,7 @@ fun ProfileScreen(
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                 ) {
                     AsyncImage(
-                        model = user?.photoUrl ?: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                        model = authUser?.photoUrl ?: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
                         contentDescription = "Profile Picture",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -84,18 +145,33 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // নাম এবং ইমেইল
+                // নাম এবং ইমেইল (Multi-language সাপোর্টসহ)
                 Text(
-                    text = user?.displayName ?: stringResource(R.string.default_user_name),
+                    text = if (isGuestMode) stringResource(R.string.guest_user) else uiState.userName,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
                 )
                 Text(
-                    text = user?.email ?: stringResource(R.string.default_email),
+                    text = if (isGuestMode) stringResource(R.string.login_desc) else uiState.userEmail,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
                 )
+            }
+        }
+
+        if (isGuestMode) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { showLoginSheet = true },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+            ) {
+                Icon(Icons.Rounded.Login, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.login_with_google), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
 
@@ -115,18 +191,61 @@ fun ProfileScreen(
             title = stringResource(R.string.change_language),
             subtitle = stringResource(R.string.change_language_desc),
             icon = Icons.Rounded.Language,
-            iconColor = Color(0xFF10B981), // Emerald কালার
+            iconColor = Color(0xFF10B981),
             onClick = { showLanguageSheet = true }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // 🔥 কারেন্সি বা মুদ্রা পরিবর্তন সেটিংস
+        SettingsItem(
+            title = "Change Currency", // আপনি চাইলে এটি strings.xml এ নিতে পারেন
+            subtitle = "Current: $currentCurrency",
+            icon = Icons.Rounded.Payments,
+            iconColor = Color(0xFF3B82F6), // সুন্দর নীল রঙ
+            onClick = { showCurrencySheet = true }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ব্যাকআপ বাটন
+        val loginRequiredBackupStr = stringResource(R.string.login_required_backup)
         SettingsItem(
             title = stringResource(R.string.backup_now),
-            subtitle = stringResource(R.string.backup_now_desc),
+            subtitle = if (isGuestMode) loginRequiredBackupStr else if (uiState.isBackingUp) "Backing up..." else "Last Backup: ${uiState.lastBackupTime}",
             icon = Icons.Rounded.CloudUpload,
             iconColor = Color(0xFF005088),
-            onClick = { /* ব্যাকআপ ফাংশন কল হবে */ }
+            isLoading = uiState.isBackingUp,
+            onClick = {
+                if (isGuestMode) {
+                    showLoginSheet = true
+                } else if (!uiState.isBackingUp && !uiState.isRestoring) {
+                    viewModel.triggerBackup { isSuccess, message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // রিস্টোর বাটন
+        val loginRequiredRestoreStr = stringResource(R.string.login_required_restore)
+        SettingsItem(
+            title = "Restore Data",
+            subtitle = if (isGuestMode) loginRequiredRestoreStr else if (uiState.isRestoring) "Restoring data..." else "Restore from Google Drive",
+            icon = Icons.Rounded.Restore,
+            iconColor = Color(0xFFD97706),
+            isLoading = uiState.isRestoring,
+            onClick = {
+                if (isGuestMode) {
+                    showLoginSheet = true
+                } else if (!uiState.isBackingUp && !uiState.isRestoring) {
+                    viewModel.triggerRestore { isSuccess, message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -148,30 +267,122 @@ fun ProfileScreen(
                     Text(stringResource(R.string.auto_backup_desc), fontSize = 12.sp, color = Color.Gray)
                 }
                 Switch(
-                    checked = autoBackupEnabled,
-                    onCheckedChange = { autoBackupEnabled = it }
+                    checked = if (isGuestMode) false else uiState.isAutoBackupEnabled,
+                    onCheckedChange = {
+                        if (isGuestMode) {
+                            showLoginSheet = true
+                        } else {
+                            viewModel.toggleAutoBackup(it)
+                        }
+                    }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         // --- লগআউট বাটন ---
-        Button(
-            onClick = {
-                auth.signOut()
-                onLogout()
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF43F5E))
-        ) {
-            Icon(Icons.Rounded.Logout, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.logout), fontWeight = FontWeight.Bold)
+        if (!isGuestMode) {
+            Button(
+                onClick = { showLogoutDialog = true },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF43F5E))
+            ) {
+                Icon(Icons.Rounded.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.logout), fontWeight = FontWeight.Bold)
+            }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(60.dp))
+    }
+
+    // --- 🔥 লগ-আউট কনফার্মেশন ডায়ালগ ---
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(text = stringResource(R.string.logout_confirm_title), fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(text = stringResource(R.string.logout_confirm_desc))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+                        onLogout()
+                    }
+                ) {
+                    Text(stringResource(R.string.yes), color = Color.Red, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(R.string.no), color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    // --- পপ-আপ লগ-ইন স্ক্রিন (Bottom Sheet) ---
+    if (showLoginSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val authLoading by authViewModel.isLoading.collectAsState()
+
+        ModalBottomSheet(
+            onDismissRequest = { showLoginSheet = false },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("💸", fontSize = 36.sp)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+                Text("নিখুঁত হিসাব", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(stringResource(R.string.login_desc), textAlign = TextAlign.Center, color = Color.Gray)
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = {
+                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken(context.getString(R.string.default_web_client_id))
+                            .requestEmail()
+                            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
+                            .build()
+                        val client = GoogleSignIn.getClient(context, gso)
+                        googleSignInLauncher.launch(client.signInIntent)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !authLoading
+                ) {
+                    if (authLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text(stringResource(R.string.login_with_google), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
     }
 
     // --- ভাষা পরিবর্তনের Bottom Sheet ---
@@ -205,7 +416,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // English Option
                 LanguageOptionCard(
                     title = stringResource(R.string.english),
                     subtitle = stringResource(R.string.english),
@@ -213,7 +423,6 @@ fun ProfileScreen(
                         coroutineScope.launch {
                             languagePreferences.saveLanguage("en")
                             showLanguageSheet = false
-                            // ভাষা পরিবর্তনের পর রিস্টার্ট করা হচ্ছে
                             (context as? Activity)?.recreate()
                         }
                     }
@@ -221,7 +430,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Bangla Option
                 LanguageOptionCard(
                     title = stringResource(R.string.bangla),
                     subtitle = stringResource(R.string.bengali),
@@ -229,7 +437,6 @@ fun ProfileScreen(
                         coroutineScope.launch {
                             languagePreferences.saveLanguage("bn")
                             showLanguageSheet = false
-                            // ভাষা পরিবর্তনের পর রিস্টার্ট করা হচ্ছে
                             (context as? Activity)?.recreate()
                         }
                     }
@@ -237,10 +444,116 @@ fun ProfileScreen(
             }
         }
     }
+
+    // --- 🔥 কারেন্সি বা মুদ্রা পরিবর্তনের Bottom Sheet ---
+    if (showCurrencySheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var searchText by remember { mutableStateOf("") }
+
+        // CurrencyManager থেকে ডেটা নিয়ে ফিল্টার করা হচ্ছে
+        val currencyList = remember { CurrencyManager.currencyList }
+        val filteredCurrencies = currencyList.filter {
+            it.country.contains(searchText, ignoreCase = true) ||
+                    it.code.contains(searchText, ignoreCase = true)
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { showCurrencySheet = false },
+            sheetState = sheetState,
+            containerColor = Color.White,
+            modifier = Modifier.fillMaxHeight(0.85f) // স্ক্রিনের 85% জায়গা নেবে
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = "Select Currency",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E293B)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // সার্চ বক্স
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
+                    placeholder = { Text("Search country or currency...", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF10B981),
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    ),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // দেশ ও মুদ্রার লিস্ট (LazyColumn দিয়ে অপ্টিমাইজড)
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(filteredCurrencies) { currency ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    coroutineScope.launch {
+                                        // ডাটাবেসে নতুন কারেন্সি সেভ হচ্ছে
+                                        languagePreferences.saveCurrency(currency.symbol)
+                                        showCurrencySheet = false
+                                    }
+                                }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = currency.symbol,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981),
+                                modifier = Modifier.width(48.dp),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = currency.country,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E293B)
+                                )
+                                Text(
+                                    text = currency.code,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-fun SettingsItem(title: String, subtitle: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
+fun SettingsItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconColor: Color,
+    isLoading: Boolean = false,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -251,11 +564,20 @@ fun SettingsItem(title: String, subtitle: String, icon: ImageVector, iconColor: 
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = iconColor)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = iconColor,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(icon, contentDescription = null, tint = iconColor)
+            }
+
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(subtitle, fontSize = 12.sp, color = Color.Gray)
+                Text(subtitle, fontSize = 12.sp, color = if (isLoading) iconColor else Color.Gray)
             }
         }
     }
@@ -267,8 +589,6 @@ fun LanguageOptionCard(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    val themeColor = Color(0xFF10B981)
-
     Row(
         modifier = Modifier
             .fillMaxWidth()

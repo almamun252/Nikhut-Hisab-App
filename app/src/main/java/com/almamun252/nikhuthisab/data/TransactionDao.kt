@@ -53,4 +53,7 @@ interface TransactionDao {
     // ৭. অনলাইন সিঙ্ক (Hostinger) এর জন্য: যেসব ডেটা এখনো সার্ভারে যায়নি সেগুলো খুঁজে বের করার কোয়েরি
     @Query("SELECT * FROM transactions WHERE isSynced = 0")
     suspend fun getUnsyncedTransactions(): List<Transaction>
+
+    @Query("DELETE FROM transactions")
+    suspend fun clearAllTransactions()
 }

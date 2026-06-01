@@ -7,6 +7,11 @@ import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.model.AppUser
 import com.almamun252.nikhuthisab.repository.AuthRepository
 import com.almamun252.nikhuthisab.repository.FirebaseAuthImpl
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import com.google.api.services.drive.DriveScopes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +43,17 @@ class AuthViewModel(
         }
     }
 
+    // 🔥 Google Drive এর স্কোপ সহ SignInClient পাওয়ার ফাংশন
+    fun getGoogleSignInClient(): GoogleSignInClient {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getApplication<Application>().getString(R.string.default_web_client_id))
+            .requestEmail()
+            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA)) // ড্রাইভের হিডেন (App Data) ফোল্ডারের পারমিশন
+            .build()
+
+        return GoogleSignIn.getClient(getApplication<Application>(), gso)
+    }
+
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -55,6 +71,8 @@ class AuthViewModel(
 
     fun signOut() {
         viewModelScope.launch {
+            // গুগল থেকেও সাইন-আউট করতে চাইলে নিচের লাইনটি ব্যবহার করতে পারেন
+            // getGoogleSignInClient().signOut()
             repository.signOut()
         }
     }

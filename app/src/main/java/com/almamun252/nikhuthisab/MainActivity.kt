@@ -1,13 +1,14 @@
 package com.almamun252.nikhuthisab
 
 import android.Manifest
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity // <-- এটি পরিবর্তন করা হয়েছে
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,7 +31,6 @@ import com.almamun252.nikhuthisab.worker.ReminderScheduler
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 
-// ComponentActivity এর বদলে AppCompatActivity ব্যবহার করা হলো
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,16 +77,20 @@ class MainActivity : AppCompatActivity() {
                         return@Surface
                     }
 
-                    // অ্যাপ চালুর সাথে সাথেই চেক করবে ইউজার আগে থেকে লগইন করা আছে কি না
+                    // ১. চেক করা হচ্ছে ইউজার আগে থেকে লগইন করা আছে কি না
                     val currentUser = FirebaseAuth.getInstance().currentUser
+
+                    // ২. চেক করা হচ্ছে ইউজার লগ-ইন স্কিপ বা Never Show Again করেছে কি না
+                    val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    val neverShowLogin = sharedPref.getBoolean("never_show_login", false)
 
                     // স্টার্ট ডেস্টিনেশন লজিক:
                     // ১. ভাষা সিলেক্ট না করলে Language Screen
-                    // ২. লগইন করা থাকলে Main Screen
-                    // ৩. নাহলে Login Screen
+                    // ২. লগইন করা থাকলে অথবা "Never Show Again" এ চাপ দিলে Main Screen
+                    // ৩. নাহলে Login Screen (শুধু "লগ-ইন ছাড়া চালিয়ে যান" চাপলে পরেরবার আবার লগ-ইন স্ক্রিন আসবে)
                     val startDestination = when {
                         isLangSelected == false -> "language_selection"
-                        currentUser != null -> "main"
+                        currentUser != null || neverShowLogin -> "main" // 🔥 এখানে নতুন লজিক আপডেট করা হয়েছে
                         else -> "login"
                     }
 
@@ -105,10 +109,15 @@ class MainActivity : AppCompatActivity() {
                             LoginScreen(navController = topLevelNavController)
                         }
 
-                        // মেইন স্ক্রিন (যেখানে আপনার হোম এবং বটম নেভিগেশন আছে)
+                        // মেইন স্ক্রিন
                         composable("main") {
-                            // MainScreen নিজের ভেতরের নেভিগেশন নিজেই ম্যানেজ করবে
                             MainScreen(onLogout = {
+                                // 🔥 লগ-আউট করলে সব ডাটা আবার রিসেট করে দেওয়া হচ্ছে, যাতে লগ-ইন স্ক্রিন আবার আসে
+                                sharedPref.edit()
+                                    .putBoolean("is_guest_mode", false)
+                                    .putBoolean("never_show_login", false)
+                                    .apply()
+
                                 topLevelNavController.navigate("login") {
                                     popUpTo("main") { inclusive = true }
                                 }

@@ -84,7 +84,8 @@ class NotificationWorker(
 
         // নোটিফিকেশনটি বিল্ড করা
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // এখানে পরে আপনার অ্যাপের আইকন দিতে পারেন
+            // 🔥 এখানে আপনার অ্যাপের নিজস্ব আইকন দেওয়া হয়েছে
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

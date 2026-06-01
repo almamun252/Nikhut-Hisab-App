@@ -1,9 +1,12 @@
 package com.almamun252.nikhuthisab.worker
 
 import android.content.Context
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -89,5 +92,52 @@ object ReminderScheduler {
             ExistingPeriodicWorkPolicy.UPDATE,
             dailyWorkRequest
         )
+    }
+
+    // --- অটো ব্যাকআপ সেকশন ---
+
+    // প্রতিদিন রাত ১২ টায় অটো ব্যাকআপ (Random 1 hour Flex/Jitter সহ)
+    fun scheduleDailyAutoBackup(context: Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED) // ব্যাকআপের জন্য ইন্টারনেট বাধ্যতামূলক
+            .build()
+
+        val currentDate = Calendar.getInstance()
+        val targetDate = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0) // রাত ১২টা (পরের দিনের শুরু)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+
+            if (before(currentDate)) {
+                add(Calendar.DAY_OF_YEAR, 1) // আজকে রাত ১২টা পার হয়ে গেলে আগামীকালের রাত ১২টা
+            }
+        }
+
+        val initialDelay = targetDate.timeInMillis - currentDate.timeInMillis
+
+        // PeriodicWorkRequest তৈরি
+        val backupRequest = PeriodicWorkRequestBuilder<AutoBackupWorker>(
+            24, TimeUnit.HOURS, // প্রতি ২৪ ঘণ্টায় রান করবে
+            1, TimeUnit.HOURS   // 🔥 Flex interval: ১ ঘণ্টার মধ্যে যেকোনো এক সময় রান করবে (Jitter)
+        )
+            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS) // প্রথমবার রাত ১২টায় শুরু হবে
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL, // 🔥 ফেইল হলে এক্সপোনেনশিয়াল ব্যাকঅফ (৫, ১০, ২০ মিনিট...)
+                5, TimeUnit.MINUTES
+            )
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "NikhutHisabAutoBackup",
+            ExistingPeriodicWorkPolicy.UPDATE, // আপডেট করা হলো যাতে নতুন সেটিং কাজ করে
+            backupRequest
+        )
+    }
+
+    // ইউজার যদি অটো ব্যাকআপ বন্ধ করে দেয়, তখন এটি কল হবে
+    fun cancelAutoBackup(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork("NikhutHisabAutoBackup")
     }
 }
