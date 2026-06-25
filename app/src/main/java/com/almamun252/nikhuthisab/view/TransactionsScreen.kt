@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.utils.PdfGenerator
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
@@ -60,6 +61,10 @@ fun TransactionsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val allTransactions by viewModel.allTransactions.collectAsState()
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     // Screen Entry Animation State
     var isVisible by remember { mutableStateOf(false) }
@@ -377,6 +382,7 @@ fun TransactionsScreen(
                         items(currentItems.size, key = { currentItems[it].id }) { index ->
                             AllTransactionItemCard(
                                 transaction = currentItems[index],
+                                selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                                 modifier = Modifier.animateItemPlacement(tween(300)),
                                 onClick = { selectedTransaction = currentItems[index] }
                             )
@@ -417,6 +423,7 @@ fun TransactionsScreen(
             ) {
                 AllTransactionDetailsSheet(
                     transaction = selectedTransaction!!,
+                    selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                     onEdit = {
                         val id = selectedTransaction!!.id
                         val route = when (selectedTransaction!!.type) {
@@ -772,6 +779,7 @@ fun PdfOptionButton(text: String, isSelected: Boolean, color: Color, modifier: M
 @Composable
 private fun AllTransactionItemCard(
     transaction: Transaction,
+    selectedCurrency: String, // 🔥 কারেন্সি প্যারামিটার
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -891,7 +899,7 @@ private fun AllTransactionItemCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(themeColor)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                .padding(horizontal = 6.dp, vertical = 0.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -906,9 +914,9 @@ private fun AllTransactionItemCard(
 
                 Spacer(modifier = Modifier.width(6.dp)) // Reduced gap
 
-                // ৪. ডানদিকের টাকার অংক
+                // ৪. ডানদিকের টাকার অংক (🔥 ডাইনামিক কারেন্সি)
                 Text(
-                    text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                    text = "$amountPrefix $selectedCurrency${transaction.amount.toInt()}",
                     fontSize = 15.sp, // Reduced from 18.sp
                     fontWeight = FontWeight.ExtraBold,
                     color = themeColor
@@ -922,6 +930,7 @@ private fun AllTransactionItemCard(
 @Composable
 private fun AllTransactionDetailsSheet(
     transaction: Transaction,
+    selectedCurrency: String, // 🔥 কারেন্সি প্যারামিটার
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -970,8 +979,9 @@ private fun AllTransactionDetailsSheet(
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(8.dp))
+        // 🔥 ডাইনামিক কারেন্সি
         Text(
-            text = "$amountPrefix ৳${transaction.amount.toInt()}",
+            text = "$amountPrefix $selectedCurrency${transaction.amount.toInt()}",
             fontSize = 28.sp,
             fontWeight = FontWeight.ExtraBold,
             color = themeColor

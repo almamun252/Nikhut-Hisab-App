@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
@@ -55,6 +56,10 @@ fun DebtCreditScreen(
 ) {
     val context = LocalContext.current
     val allTransactions by viewModel.allTransactions.collectAsState()
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
@@ -292,7 +297,8 @@ fun DebtCreditScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "৳ ${currentTotal.toInt()}",
+                                        // 🔥 ডাইনামিক কারেন্সি
+                                        text = "$selectedCurrency ${currentTotal.toInt()}",
                                         color = darkThemeColor,
                                         fontSize = 28.sp,
                                         fontWeight = FontWeight.ExtraBold,
@@ -358,6 +364,7 @@ fun DebtCreditScreen(
                                     ModernDebtCreditCard(
                                         transaction = tx,
                                         themeColor = themeColor,
+                                        selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                                         modifier = Modifier.animateItemPlacement(tween(300)),
                                         onClick = { selectedTransaction = tx }
                                     )
@@ -411,9 +418,10 @@ fun DebtCreditScreen(
                 val dueSdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    DetailRow(icon = Icons.Rounded.AccountBalanceWallet, label = stringResource(R.string.label_total_amount), value = "৳${tx.amount.toInt()}", color = themeColor)
-                    DetailRow(icon = Icons.Rounded.CheckCircle, label = stringResource(R.string.label_settled_amount), value = "৳${tx.settledAmount.toInt()}", color = Color(0xFF10B981))
-                    DetailRow(icon = Icons.Rounded.Pending, label = stringResource(R.string.label_remaining_amount), value = "৳${(tx.amount - tx.settledAmount).toInt()}", color = if (isSettled) Color.Gray else themeColor)
+                    // 🔥 ডাইনামিক কারেন্সি পাস করা হয়েছে
+                    DetailRow(icon = Icons.Rounded.AccountBalanceWallet, label = stringResource(R.string.label_total_amount), value = "$selectedCurrency${tx.amount.toInt()}", color = themeColor)
+                    DetailRow(icon = Icons.Rounded.CheckCircle, label = stringResource(R.string.label_settled_amount), value = "$selectedCurrency${tx.settledAmount.toInt()}", color = Color(0xFF10B981))
+                    DetailRow(icon = Icons.Rounded.Pending, label = stringResource(R.string.label_remaining_amount), value = "$selectedCurrency${(tx.amount - tx.settledAmount).toInt()}", color = if (isSettled) Color.Gray else themeColor)
                     DetailRow(icon = Icons.Rounded.CalendarToday, label = stringResource(R.string.label_date_time_given), value = sdf.format(Date(tx.date)), color = Color.Gray)
                     if (tx.dueDate != null) {
                         val isOverdue = tx.dueDate < System.currentTimeMillis() && !isSettled
@@ -508,7 +516,7 @@ fun DebtCreditScreen(
         }
     }
 
-    // --- Partial Payment Dialog ---
+    // --- Partial Payment Dialog with Double Entry Logic ---
     if (showPaymentDialog != null) {
         val tx = showPaymentDialog!!
         val remaining = tx.amount - tx.settledAmount
@@ -528,7 +536,8 @@ fun DebtCreditScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true,
-                        leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor, modifier = Modifier.padding(start = 12.dp)) },
+                        // 🔥 ডাইনামিক কারেন্সি
+                        leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = themeColor, modifier = Modifier.padding(start = 12.dp)) },
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = themeColor, unfocusedBorderColor = Color(0xFFE2E8F0))
                     )
                 }
@@ -538,9 +547,33 @@ fun DebtCreditScreen(
                     onClick = {
                         val input = paymentAmountInput.toDoubleOrNull()
                         if (input != null && input > 0 && input <= remaining) {
+                            // ১. মূল ধারের কার্ড আপডেট করা
                             val updatedTx = tx.copy(settledAmount = tx.settledAmount + input)
                             viewModel.deleteTransaction(tx)
                             viewModel.insertTransaction(updatedTx)
+
+                            // ২. 🔥 ডাবল এন্ট্রি: পেমেন্ট হিস্ট্রির জন্য নতুন ট্রানজেকশন তৈরি করা
+                            val isLending = tx.type == "Lending"
+                            val paymentTxType = if (isLending) "Income" else "Expense"
+
+                            val paymentTxTitle = if (isLending) {
+                                "${tx.title} (ধার ফেরত)"
+                            } else {
+                                "${tx.title} (ধার পরিশোধ)"
+                            }
+
+                            val paymentCategoryStr = context.getString(R.string.cat_loan) // "ধার/লোন" ক্যাটাগরি
+
+                            val paymentTransaction = Transaction(
+                                title = paymentTxTitle,
+                                amount = input,
+                                type = paymentTxType,
+                                category = paymentCategoryStr,
+                                date = System.currentTimeMillis(),
+                                note = "আংশিক/সম্পূর্ণ ধার নিষ্পত্তি"
+                            )
+                            viewModel.insertTransaction(paymentTransaction)
+
                             Toast.makeText(context, context.getString(R.string.msg_added_successfully), Toast.LENGTH_SHORT).show()
                             showPaymentDialog = null
                         } else {
@@ -740,7 +773,7 @@ private fun SharedDateRangeFilter(selectedOption: String, themeColor: Color, mod
 
 // --- Modern Compact Card Design with Glowing Shadow ---
 @Composable
-fun ModernDebtCreditCard(transaction: Transaction, themeColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun ModernDebtCreditCard(transaction: Transaction, themeColor: Color, selectedCurrency: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val remaining = transaction.amount - transaction.settledAmount
     val progress = if (transaction.amount > 0) (transaction.settledAmount / transaction.amount).toFloat() else 0f
     val isSettled = remaining <= 0
@@ -871,9 +904,9 @@ fun ModernDebtCreditCard(transaction: Transaction, themeColor: Color, modifier: 
 
                     Spacer(modifier = Modifier.width(6.dp))
 
-                    // টাকার অংক
+                    // টাকার অংক (🔥 ডাইনামিক কারেন্সি)
                     Text(
-                        text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                        text = "$amountPrefix $selectedCurrency${transaction.amount.toInt()}",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = themeColor

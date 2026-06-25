@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.ShoppingItem
 import com.almamun252.nikhuthisab.viewmodel.ShoppingViewModel
 
@@ -51,6 +52,10 @@ fun ShoppingListScreen(
 ) {
     val context = LocalContext.current
     val shoppingItems by shoppingViewModel.allShoppingItems.collectAsState(initial = emptyList())
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     // UI States
     var isVisible by remember { mutableStateOf(false) }
@@ -220,12 +225,14 @@ fun ShoppingListScreen(
                                 Column {
                                     Text(stringResource(R.string.label_estimated_cost_remaining), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("৳${totalEstimated.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                    // 🔥 ডাইনামিক কারেন্সি
+                                    Text("$selectedCurrency${totalEstimated.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(stringResource(R.string.label_actual_cost_purchased), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("৳${totalActual.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+                                    // 🔥 ডাইনামিক কারেন্সি
+                                    Text("$selectedCurrency${totalActual.toInt()}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                                 }
                             }
                             Spacer(modifier = Modifier.height(20.dp))
@@ -277,6 +284,7 @@ fun ShoppingListScreen(
                         ModernShoppingItemCard(
                             item = item,
                             themeColor = themeColor,
+                            selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                             isMultiSelectMode = isMultiSelectMode,
                             isSelected = isSelected,
                             onToggleSelect = {
@@ -324,7 +332,8 @@ fun ShoppingListScreen(
                             onValueChange = { inputEstimatedPrice = it },
                             label = stringResource(R.string.hint_estimated_price),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
+                            // 🔥 ডাইনামিক কারেন্সি
+                            leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = themeColor) },
                             themeColor = themeColor
                         )
                     }
@@ -363,7 +372,8 @@ fun ShoppingListScreen(
                         onValueChange = { actualPriceInput = it },
                         label = stringResource(R.string.hint_actual_price_of_item, purchaseItem?.name ?: ""),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
+                        // 🔥 ডাইনামিক কারেন্সি
+                        leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = themeColor) },
                         themeColor = themeColor,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -418,7 +428,8 @@ fun ShoppingListScreen(
                             onValueChange = { mergeTotalActualPriceInput = it },
                             label = stringResource(R.string.hint_total_actual_price),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor) },
+                            // 🔥 ডাইনামিক কারেন্সি
+                            leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = themeColor) },
                             themeColor = themeColor
                         )
                     }
@@ -588,6 +599,7 @@ fun AlwaysFloatingOutlinedTextField(
 fun ModernShoppingItemCard(
     item: ShoppingItem,
     themeColor: Color,
+    selectedCurrency: String, // 🔥 কারেন্সি প্যারামিটার
     isMultiSelectMode: Boolean,
     isSelected: Boolean,
     onToggleSelect: () -> Unit,
@@ -682,10 +694,12 @@ fun ModernShoppingItemCard(
                 // Price Section
                 Column(horizontalAlignment = Alignment.End) {
                     if (item.isPurchased) {
-                        Text("৳${item.actualPrice.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = themeColor)
+                        // 🔥 ডাইনামিক কারেন্সি
+                        Text("$selectedCurrency${item.actualPrice.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = themeColor)
                     } else {
                         if (item.estimatedPrice > 0) {
-                            Text("৳${item.estimatedPrice.toInt()}", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF94A3B8))
+                            // 🔥 ডাইনামিক কারেন্সি
+                            Text("$selectedCurrency${item.estimatedPrice.toInt()}", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF94A3B8))
                         } else {
                             Text("—", color = Color.LightGray, fontSize = 16.sp)
                         }

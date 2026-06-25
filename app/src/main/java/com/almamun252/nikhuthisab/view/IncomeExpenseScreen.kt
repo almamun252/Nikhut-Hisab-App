@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
@@ -51,6 +52,10 @@ fun IncomeExpenseScreen(
 ) {
     val context = LocalContext.current
     val allTransactions by viewModel.allTransactions.collectAsState()
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
@@ -279,7 +284,7 @@ fun IncomeExpenseScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "৳ ${currentTotal.toInt()}",
+                                        text = "$selectedCurrency ${currentTotal.toInt()}", // 🔥 ডাইনামিক কারেন্সি
                                         color = darkThemeColor,
                                         fontSize = 28.sp,
                                         fontWeight = FontWeight.ExtraBold,
@@ -340,6 +345,7 @@ fun IncomeExpenseScreen(
                                     IncomeExpenseItemCard(
                                         transaction = tx,
                                         themeColor = themeColor,
+                                        selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                                         modifier = Modifier.animateItemPlacement(tween(300)),
                                         onClick = { selectedTransaction = tx }
                                     )
@@ -461,7 +467,8 @@ fun IncomeExpenseScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${if (tx.type == "Income") "+" else "-"} ৳${tx.amount.toInt()}",
+                        // 🔥 ডাইনামিক কারেন্সি
+                        text = "${if (tx.type == "Income") "+" else "-"} $selectedCurrency${tx.amount.toInt()}",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = themeColor
@@ -645,6 +652,7 @@ private fun SharedDateRangeFilter(selectedOption: String, themeColor: Color, mod
 fun IncomeExpenseItemCard(
     transaction: Transaction,
     themeColor: Color,
+    selectedCurrency: String, // 🔥 কারেন্সি প্যারামিটার
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -762,7 +770,8 @@ fun IncomeExpenseItemCard(
                 Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
-                    text = "$amountPrefix ৳${transaction.amount.toInt()}",
+                    // 🔥 ডাইনামিক কারেন্সি
+                    text = "$amountPrefix $selectedCurrency${transaction.amount.toInt()}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = themeColor

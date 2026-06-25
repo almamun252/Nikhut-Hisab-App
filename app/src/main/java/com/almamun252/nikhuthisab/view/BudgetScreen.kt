@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.Budget
 import com.almamun252.nikhuthisab.viewmodel.BudgetViewModel
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
@@ -51,6 +52,10 @@ fun BudgetScreen(
     transactionViewModel: TransactionViewModel = viewModel() // খরচের হিসাব আনার জন্য
 ) {
     val context = LocalContext.current
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     // বর্তমান মাস বের করা (যেমন: "05-2026")
     val cal = Calendar.getInstance()
@@ -186,6 +191,7 @@ fun BudgetScreen(
                         BudgetProgressCard(
                             budget = budget,
                             spentAmount = spentAmount,
+                            selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                             onEditClick = {
                                 selectedBudgetToEdit = budget
                                 amountInput = if (budget.limitAmount % 1.0 == 0.0) budget.limitAmount.toInt().toString() else budget.limitAmount.toString()
@@ -257,7 +263,8 @@ fun BudgetScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = Color(0xFF4F46E5), modifier = Modifier.padding(start = 12.dp)) },
+                        // 🔥 এখানে ডাইনামিক কারেন্সি বসানো হয়েছে
+                        leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = Color(0xFF4F46E5), modifier = Modifier.padding(start = 12.dp)) },
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF4F46E5))
                     )
                 }
@@ -307,6 +314,7 @@ fun BudgetScreen(
 fun BudgetProgressCard(
     budget: Budget,
     spentAmount: Double,
+    selectedCurrency: String, // 🔥 কারেন্সি রিসিভ করার জন্য প্যারামিটার যুক্ত করা হলো
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {

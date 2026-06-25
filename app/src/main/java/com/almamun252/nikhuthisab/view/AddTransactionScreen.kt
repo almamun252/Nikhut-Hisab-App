@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.Transaction
 import com.almamun252.nikhuthisab.viewmodel.TransactionViewModel
 import java.text.SimpleDateFormat
@@ -58,6 +59,11 @@ fun AddTransactionScreen(
     viewModel: TransactionViewModel = viewModel()
 ) {
     val context = LocalContext.current
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
+
     val transactions by viewModel.allTransactions.collectAsState()
 
     // Screen Entry Animation State
@@ -219,7 +225,8 @@ fun AddTransactionScreen(
                                 .background(lightThemeColor),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("৳", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
+                            // 🔥 এখানে ডাইনামিক কারেন্সি বসানো হয়েছে
+                            Text(selectedCurrency, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeColor)
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

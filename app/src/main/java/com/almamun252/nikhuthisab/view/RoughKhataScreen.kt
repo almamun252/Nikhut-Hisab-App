@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.almamun252.nikhuthisab.R
+import com.almamun252.nikhuthisab.data.LanguagePreferences // 🔥 এটি যুক্ত করা হয়েছে
 import com.almamun252.nikhuthisab.model.RoughTransaction
 import com.almamun252.nikhuthisab.viewmodel.RoughViewModel
 import java.text.SimpleDateFormat
@@ -47,6 +48,10 @@ fun RoughKhataScreen(
 ) {
     val context = LocalContext.current
     val roughTransactions by roughViewModel.allRoughTransactions.collectAsState(initial = emptyList<RoughTransaction>())
+
+    // 🔥 কারেন্সি প্রিফারেন্স রিড করা হচ্ছে
+    val currencyPreferences = remember { LanguagePreferences(context) }
+    val selectedCurrency by currencyPreferences.selectedCurrency.collectAsState(initial = "৳")
 
     // UI States
     var isVisible by remember { mutableStateOf(false) }
@@ -170,7 +175,8 @@ fun RoughKhataScreen(
                         ) {
                             Text(stringResource(R.string.label_rough_total_expense), color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("৳ ${totalAmount.toInt()}", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
+                            // 🔥 ডাইনামিক কারেন্সি
+                            Text("$selectedCurrency ${totalAmount.toInt()}", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 }
@@ -202,6 +208,7 @@ fun RoughKhataScreen(
                         RoughTransactionCard(
                             transaction = tx,
                             themeColor = themeColor,
+                            selectedCurrency = selectedCurrency, // 🔥 কারেন্সি পাস করা হলো
                             onMoveClick = { transferConfirmDialogItem = tx },
                             onDeleteClick = { roughViewModel.deleteRough(tx.id) }
                         )
@@ -268,7 +275,8 @@ fun RoughKhataScreen(
                             onValueChange = { inputAmount = it },
                             label = stringResource(R.string.label_amount_only),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            leadingIcon = { Text("৳", fontWeight = FontWeight.Bold, color = themeColor, modifier = Modifier.padding(start = 12.dp)) },
+                            // 🔥 ডাইনামিক কারেন্সি
+                            leadingIcon = { Text(selectedCurrency, fontWeight = FontWeight.Bold, color = themeColor, modifier = Modifier.padding(start = 12.dp)) },
                             themeColor = themeColor,
                             labelBackgroundColor = Color.White
                         )
@@ -364,6 +372,7 @@ fun RoughKhataScreen(
 fun RoughTransactionCard(
     transaction: RoughTransaction,
     themeColor: Color,
+    selectedCurrency: String, // 🔥 কারেন্সি প্যারামিটার
     onMoveClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -425,7 +434,8 @@ fun RoughTransactionCard(
                 // Right Side (Amount & Delete)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "৳${transaction.amount.toInt()}",
+                        // 🔥 ডাইনামিক কারেন্সি
+                        text = "$selectedCurrency${transaction.amount.toInt()}",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = themeColor
