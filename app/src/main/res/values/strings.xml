@@ -1,9 +1,6 @@
 <resources>
     <string name="app_name">Nikhut Hisab</string>
 
-    <!-- Google Sign-In Client ID (Very Important) -->
-    <string name="default_web_client_id">REMOVED_CLIENT_ID</string>
-
     <!-- Profile Screen Strings -->
     <string name="default_user_name">User Name</string>
     <string name="default_email">example@gmail.com</string>
@@ -20,7 +17,6 @@
     <string name="english">English</string>
     <string name="bangla">বাংলা</string>
     <string name="bengali">Bengali</string>
-
 
     <string name="nav_home">Home</string>
     <string name="nav_transactions">Transactions</string>
@@ -40,7 +36,6 @@
     <string name="deadline_label">Deadline: %1$s</string>
     <string name="notif_lending">Supposed to receive ৳%2$d from %1$s.</string>
     <string name="notif_borrowing">Need to pay ৳%2$d to %1$s.</string>
-
 
     <!-- Add Debt/Credit Screen Strings -->
     <string name="title_update_lending">Update Receivable</string>
@@ -111,7 +106,6 @@
     <string name="chip_tea">Tea</string>
     <string name="chip_internet">Internet</string>
     <string name="chip_bonus">Bonus</string>
-
 
     <!-- Budget Screen Strings -->
     <string name="btn_new_budget">New Budget</string>
@@ -188,10 +182,8 @@
     <string name="tab_expense">Expense</string>
     <string name="msg_no_income">No income records!</string>
     <string name="msg_no_expense">No expense records!</string>
-
     <string name="btn_new_income">New Income</string>
     <string name="btn_new_expense">New Expense</string>
-
 
     <!-- Transactions & PDF Report Screen Strings -->
     <string name="filter_all_type">All Types</string>
@@ -225,13 +217,11 @@
     <string name="today">Today</string>
     <string name="to">to</string>
 
-
     <string name="label_note">Note</string>
     <string name="btn_edit">Edit</string>
     <string name="btn_delete">Delete</string>
     <string name="desc_add">Add</string>
     <string name="msg_enter_valid_info">Please enter valid information!</string>
-
 
     <!-- Rough Khata Strings -->
     <string name="title_rough_khata">Rough Khata</string>
@@ -254,7 +244,6 @@
     <string name="btn_move_to_main">Move to Main</string>
     <string name="btn_add">Add</string>
     <string name="desc_clear_all">Clear All</string>
-
 
     <!-- Shopping List Strings -->
     <string name="default_merge_title">Groceries</string>
@@ -298,7 +287,6 @@
     <string name="msg_pdf_saved">PDF saved: Downloads/%1$s</string>
     <string name="msg_pdf_error">Error creating PDF: %1$s</string>
 
-
     <!-- FirebaseAuthlmpl Strings -->
     <string name="msg_user_not_found">User not found!</string>
 
@@ -307,7 +295,6 @@
 
     <!-- ProfileViewModel Strings -->
     <string name="never_backed_up">Never backed up</string>
-
 
     <!-- Home screen Strings -->
     <string name="title_start_tracking">Start Tracking!</string>
@@ -358,7 +345,6 @@
     <string name="start_with_google">Start with Google</string>
     <string name="continue_without_login">Continue without login</string>
     <string name="login_error">Login Error</string>
-
     <string name="never_show_again">Don\'t show again</string>
 
     <!-- Backup Strings -->
@@ -371,16 +357,12 @@
     <!-- NotificationWorker Strings -->
     <string name="notif_channel_name">Reminders</string>
     <string name="notif_channel_desc">Daily and transaction reminders</string>
-
     <string name="notif_daily_title">Time to update your accounts!</string>
     <string name="notif_daily_desc">Don\'t forget to add today\'s income and expenses.</string>
-
     <string name="notif_unknown_person">Someone</string>
     <string name="notif_payment_title">Payment Reminder</string>
+
     <!-- %1$s = Name, %2$d = Amount -->
     <string name="notif_payment_lending">You need to collect %2$d Taka from %1$s.</string>
     <string name="notif_payment_borrowing">You need to pay %2$d Taka to %1$s.</string>
-
-
-
 </resources>
