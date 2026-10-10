@@ -11,3 +11,7 @@ local.properties
 keystore.properties
 .env
 .env.*
+
+.idea/
+.gradle/
+build/
