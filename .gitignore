@@ -1,0 +1,13 @@
+# Local Firebase configuration
+google-services.json
+GoogleService-Info.plist
+
+# Local SDK configuration
+local.properties
+
+# Signing keys and credentials
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
