@@ -4,13 +4,10 @@ import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
-import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object ReminderScheduler {
@@ -61,83 +58,86 @@ object ReminderScheduler {
         WorkManager.getInstance(context).cancelUniqueWork(workName)
     }
 
-    // প্রতিদিন রাত ৮ টার রিমাইন্ডার (Daily 8:00 PM Reminder)
+    // Reopening the app keeps the existing dated request instead of resetting its delay.
+    @Synchronized
     fun scheduleDailyReminder(context: Context) {
-        val currentDate = Calendar.getInstance()
-        val dueDate = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 20) // রাত ৮টা (24-hour format এ 20)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-
-            // যদি আজকের রাত ৮টা ইতিমধ্যে পার হয়ে গিয়ে থাকে, তাহলে আগামীকালের জন্য সেট করবে
-            if (before(currentDate)) {
-                add(Calendar.HOUR_OF_DAY, 24)
-            }
+        val app = context.applicationContext
+        val prefs = app.getSharedPreferences("daily_reminder_settings", Context.MODE_PRIVATE)
+        val manager = WorkManager.getInstance(app)
+        if (!prefs.getBoolean("legacy_schedule_removed", false)) {
+            manager.cancelUniqueWork("daily_8pm_reminder")
+            prefs.edit().putBoolean("legacy_schedule_removed", true).apply()
         }
-
-        val timeDiff = dueDate.timeInMillis - currentDate.timeInMillis
-
-        val inputData = Data.Builder()
-            .putString("type", "DailyReminder")
+        val now = java.time.Instant.now()
+        val zone = java.time.ZoneId.systemDefault()
+        val target = DailyReminderTime.nextRun(now, zone)
+        val date = target.atZone(zone).toLocalDate().toString()
+        val request = OneTimeWorkRequestBuilder<NotificationWorker>()
+            .setInitialDelay(target.toEpochMilli() - now.toEpochMilli(), TimeUnit.MILLISECONDS)
+            .setInputData(Data.Builder().putString("type", "DailyReminder").build())
+            .addTag("daily_8pm_reminder_v2")
             .build()
-
-        // প্রতিদিন একবার চালানোর জন্য PeriodicWorkRequest (২৪ ঘণ্টা অন্তর)
-        val dailyWorkRequest = PeriodicWorkRequestBuilder<NotificationWorker>(24, TimeUnit.HOURS)
-            .setInitialDelay(timeDiff, TimeUnit.MILLISECONDS)
-            .setInputData(inputData)
-            .build()
-
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "daily_8pm_reminder",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            dailyWorkRequest
+        manager.enqueueUniqueWork(
+            "daily_8pm_reminder_$date", ExistingWorkPolicy.KEEP, request
         )
     }
 
-    // --- অটো ব্যাকআপ সেকশন ---
+    // Persist the switch and keep one nightly request per account/date.
+    private const val BACKUP_PREFS = "nightly_backup_settings"
+    private const val ENABLED = "enabled"
+    private const val SEED = "installation_seed"
+    private const val BACKUP_TAG = "nightly_backup_v2"
 
-    // প্রতিদিন রাত ১২ টায় অটো ব্যাকআপ (Random 1 hour Flex/Jitter সহ)
+    fun isAutoBackupEnabled(context: Context): Boolean =
+        context.getSharedPreferences(BACKUP_PREFS, Context.MODE_PRIVATE)
+            .getBoolean(ENABLED, true)
+
+    fun setAutoBackupEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(BACKUP_PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(ENABLED, enabled).apply()
+        if (enabled) scheduleDailyAutoBackup(context) else cancelAutoBackup(context)
+    }
+
+    @Synchronized
     fun scheduleDailyAutoBackup(context: Context) {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED) // ব্যাকআপের জন্য ইন্টারনেট বাধ্যতামূলক
-            .build()
-
-        val currentDate = Calendar.getInstance()
-        val targetDate = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0) // রাত ১২টা (পরের দিনের শুরু)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-
-            if (before(currentDate)) {
-                add(Calendar.DAY_OF_YEAR, 1) // আজকে রাত ১২টা পার হয়ে গেলে আগামীকালের রাত ১২টা
+        val appContext = context.applicationContext
+        val prefs = appContext.getSharedPreferences(BACKUP_PREFS, Context.MODE_PRIVATE)
+        val workManager = WorkManager.getInstance(appContext)
+        if (!prefs.getBoolean("legacy_schedule_removed", false)) {
+            workManager.cancelUniqueWork("NikhutHisabAutoBackup")
+            prefs.edit().putBoolean("legacy_schedule_removed", true).apply()
+        }
+        if (!isAutoBackupEnabled(appContext)) return
+        val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        val seed = if (prefs.contains(SEED)) prefs.getLong(SEED, 0L) else {
+            kotlin.random.Random.nextLong().also {
+                prefs.edit().putLong(SEED, it).apply()
             }
         }
-
-        val initialDelay = targetDate.timeInMillis - currentDate.timeInMillis
-
-        // PeriodicWorkRequest তৈরি
-        val backupRequest = PeriodicWorkRequestBuilder<AutoBackupWorker>(
-            24, TimeUnit.HOURS, // প্রতি ২৪ ঘণ্টায় রান করবে
-            1, TimeUnit.HOURS   // 🔥 Flex interval: ১ ঘণ্টার মধ্যে যেকোনো এক সময় রান করবে (Jitter)
-        )
-            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS) // প্রথমবার রাত ১২টায় শুরু হবে
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL, // 🔥 ফেইল হলে এক্সপোনেনশিয়াল ব্যাকঅফ (৫, ১০, ২০ মিনিট...)
-                5, TimeUnit.MINUTES
-            )
+        val now = java.time.Instant.now()
+        val zone = java.time.ZoneId.systemDefault()
+        val target = NightlyBackupTime.nextRun(now, zone, seed)
+        val input = Data.Builder()
+            .putString("backup_uid", user.uid)
+            .putLong("scheduled_at", target.toEpochMilli())
             .build()
-
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "NikhutHisabAutoBackup",
-            ExistingPeriodicWorkPolicy.UPDATE, // আপডেট করা হলো যাতে নতুন সেটিং কাজ করে
-            backupRequest
+        val request = OneTimeWorkRequestBuilder<AutoBackupWorker>()
+            .setInputData(input)
+            .setInitialDelay(target.toEpochMilli() - now.toEpochMilli(), TimeUnit.MILLISECONDS)
+            .setConstraints(Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
+            .addTag(BACKUP_TAG)
+            .build()
+        val date = target.atZone(zone).toLocalDate()
+        workManager.enqueueUniqueWork(
+            "nightly_backup_${user.uid}_$date", ExistingWorkPolicy.KEEP, request
         )
     }
 
-    // ইউজার যদি অটো ব্যাকআপ বন্ধ করে দেয়, তখন এটি কল হবে
+    // WorkManager retains queued work across app closure and ordinary reboots.
     fun cancelAutoBackup(context: Context) {
+        WorkManager.getInstance(context).cancelAllWorkByTag(BACKUP_TAG)
         WorkManager.getInstance(context).cancelUniqueWork("NikhutHisabAutoBackup")
     }
 }

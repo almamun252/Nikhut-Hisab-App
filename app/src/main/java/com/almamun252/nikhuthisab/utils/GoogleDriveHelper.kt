@@ -29,40 +29,46 @@ class GoogleDriveHelper(private val context: Context) {
         return Drive.Builder(
             NetHttpTransport(), // AndroidHttp এর বদলে আধুনিক NetHttpTransport ব্যবহার করা হলো
             GsonFactory.getDefaultInstance(),
-            credential
+            com.google.api.client.http.HttpRequestInitializer { request ->
+                credential.initialize(request)
+                request.connectTimeout = 60_000
+                request.readTimeout = 60_000
+            }
         )
             .setApplicationName("Nikhut Hisab")
             .build()
     }
 
-    // JSON ডাটা গুগল ড্রাইভে আপলোড করার ফাংশন
+    // Manual callers retain Boolean results; the worker needs typed failures for retry decisions.
     suspend fun uploadBackup(driveService: Drive, jsonData: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                // 🔥 আপডেট: query থেকে spaces অংশটুকু বাদ দেওয়া হয়েছে
-                val query = "name='nikhut_hisab_backup.json'"
-                val fileList = driveService.files().list().setQ(query).setSpaces("appDataFolder").execute()
+        return try {
+            uploadBackupOrThrow(driveService, jsonData)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 
-                val fileMetadata = File().apply {
+    suspend fun uploadBackupOrThrow(driveService: Drive, jsonData: String) {
+        withContext(Dispatchers.IO) {
+            val fileList = driveService.files().list()
+                .setQ("name='nikhut_hisab_backup.json' and trashed=false")
+                .setSpaces("appDataFolder")
+                .setFields("files(id)")
+                .execute()
+            val content = ByteArrayContent.fromString("application/json", jsonData)
+            val existing = fileList.files.firstOrNull()
+            if (existing != null) {
+                driveService.files().update(existing.id, null, content).execute()
+            } else {
+                val metadata = File().apply {
                     name = "nikhut_hisab_backup.json"
-                    parents = listOf("appDataFolder") // Hidden ফোল্ডার
+                    parents = listOf("appDataFolder")
                 }
-
-                // String ডাটাকে ফাইলে কনভার্ট করা হচ্ছে
-                val mediaContent = ByteArrayContent.fromString("application/json", jsonData)
-
-                if (fileList.files.isNotEmpty()) {
-                    // আগে থেকেই ব্যাকআপ থাকলে শুধু ডাটা আপডেট (Overwrite) করবে
-                    val fileId = fileList.files[0].id
-                    driveService.files().update(fileId, null, mediaContent).execute()
-                } else {
-                    // নতুন ব্যাকআপ ফাইল তৈরি করবে
-                    driveService.files().create(fileMetadata, mediaContent).execute()
-                }
-                true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
+                driveService.files().create(metadata, content).execute()
             }
         }
     }

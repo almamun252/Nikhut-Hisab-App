@@ -125,7 +125,9 @@ fun ProfileScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // প্রোফাইল পিকচার
@@ -150,12 +152,15 @@ fun ProfileScreen(
                     text = if (isGuestMode) stringResource(R.string.guest_user) else uiState.userName,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
                 Text(
                     text = if (isGuestMode) stringResource(R.string.login_desc) else uiState.userEmail,
                     fontSize = 14.sp,
                     color = Color.Gray,
+                    modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
             }

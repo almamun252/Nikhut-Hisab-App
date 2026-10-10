@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import com.almamun252.nikhuthisab.utils.NotificationAppearance
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.almamun252.nikhuthisab.R
 import com.almamun252.nikhuthisab.repository.AuthRepository
 import com.almamun252.nikhuthisab.repository.FirebaseAuthImpl
 import com.almamun252.nikhuthisab.utils.BackupRestoreManager
+import com.almamun252.nikhuthisab.worker.ReminderScheduler
 import com.almamun252.nikhuthisab.utils.GoogleDriveHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +51,8 @@ class ProfileViewModel(
 
     private val _uiState = MutableStateFlow(
         ProfileUiState(
-            lastBackupTime = "Checking backup..."
+            lastBackupTime = "Checking backup...",
+            isAutoBackupEnabled = ReminderScheduler.isAutoBackupEnabled(application)
         )
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -197,10 +200,9 @@ class ProfileViewModel(
 
     // --- Notification Helpers ---
     private fun showProgressNotification(title: String) {
-        val notification = NotificationCompat.Builder(getApplication(), channelId)
+        val notification = NotificationAppearance.apply(getApplication(), NotificationCompat.Builder(getApplication(), channelId))
             .setContentTitle(title)
             .setContentText("Please wait...")
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // আপনার অ্যাপের আইকন দিন
             .setOngoing(true)
             .setProgress(0, 0, true) // Indeterminate Progress
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -210,9 +212,8 @@ class ProfileViewModel(
     }
 
     private fun showSuccessNotification(title: String) {
-        val notification = NotificationCompat.Builder(getApplication(), channelId)
+        val notification = NotificationAppearance.apply(getApplication(), NotificationCompat.Builder(getApplication(), channelId))
             .setContentTitle(title)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setProgress(0, 0, false) // Progress বার রিমুভ
             .setOngoing(false) // Swipe করে কাটা যাবে
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -233,6 +234,7 @@ class ProfileViewModel(
     }
 
     fun toggleAutoBackup(enabled: Boolean) {
+        ReminderScheduler.setAutoBackupEnabled(getApplication(), enabled)
         _uiState.update { it.copy(isAutoBackupEnabled = enabled) }
     }
 

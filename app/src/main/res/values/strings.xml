@@ -9,8 +9,8 @@
     <string name="change_language_desc">Change app language to English or Bangla</string>
     <string name="backup_now">Backup Now</string>
     <string name="backup_now_desc">Save all data to server</string>
-    <string name="auto_backup_title">Auto backup at 12 AM</string>
-    <string name="auto_backup_desc">Silently updates everyday</string>
+    <string name="auto_backup_title">Nightly auto backup</string>
+    <string name="auto_backup_desc">Scheduled between 12 AM and 2 AM; may run later if offline</string>
     <string name="logout">Logout</string>
     <string name="select_language">Select Language</string>
     <string name="choose_your_preferred_language">Choose your preferred language</string>
@@ -357,12 +357,13 @@
     <!-- NotificationWorker Strings -->
     <string name="notif_channel_name">Reminders</string>
     <string name="notif_channel_desc">Daily and transaction reminders</string>
-    <string name="notif_daily_title">Time to update your accounts!</string>
-    <string name="notif_daily_desc">Don\'t forget to add today\'s income and expenses.</string>
+    <string name="notif_daily_title">Add today\'s accounts</string>
+    <string name="notif_daily_desc">Please add today\'s income and expenses to keep your records up to date.</string>
     <string name="notif_unknown_person">Someone</string>
     <string name="notif_payment_title">Payment Reminder</string>
 
     <!-- %1$s = Name, %2$d = Amount -->
     <string name="notif_payment_lending">You need to collect %2$d Taka from %1$s.</string>
     <string name="notif_payment_borrowing">You need to pay %2$d Taka to %1$s.</string>
+    <string name="notif_daily_channel_name">Daily accounting reminder</string>
 </resources>

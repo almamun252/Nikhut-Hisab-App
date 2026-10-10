@@ -32,11 +32,25 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
+    private val backupAuthListener = FirebaseAuth.AuthStateListener { auth ->
+        if (auth.currentUser != null) {
+            ReminderScheduler.scheduleDailyAutoBackup(applicationContext)
+        } else {
+            ReminderScheduler.cancelAutoBackup(applicationContext)
+        }
+    }
+
+    override fun onDestroy() {
+        FirebaseAuth.getInstance().removeAuthStateListener(backupAuthListener)
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // অ্যাপ ক্র্যাশ রোধ করতে ফায়ারবেস সবার আগে ইনিশিয়ালাইজ করা হলো
         FirebaseApp.initializeApp(this)
+        FirebaseAuth.getInstance().addAuthStateListener(backupAuthListener)
 
         enableEdgeToEdge()
 

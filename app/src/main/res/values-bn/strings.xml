@@ -9,8 +9,8 @@
     <string name="change_language_desc">অ্যাপের ভাষা বাংলা বা English করুন</string>
     <string name="backup_now">এখনই ব্যাকআপ নিন</string>
     <string name="backup_now_desc">সব ডেটা সার্ভারে সেভ করুন</string>
-    <string name="auto_backup_title">রাত ১২টায় অটো ব্যাকআপ</string>
-    <string name="auto_backup_desc">প্রতিদিন নীরবে আপডেট হবে</string>
+    <string name="auto_backup_title">রাতে অটো ব্যাকআপ</string>
+    <string name="auto_backup_desc">রাত ১২টা–২টার মধ্যে নির্ধারিত; ইন্টারনেট না থাকলে পরে চলবে</string>
     <string name="logout">লগআউট করুন</string>
     <string name="select_language">ভাষা নির্বাচন করুন</string>
     <string name="choose_your_preferred_language">Choose your preferred language</string>
@@ -370,8 +370,8 @@
     <string name="notif_channel_name">রিমাইন্ডার</string>
     <string name="notif_channel_desc">প্রতিদিনের এবং লেনদেনের রিমাইন্ডার</string>
 
-    <string name="notif_daily_title">হিসাব আপডেট করার সময় হয়েছে!</string>
-    <string name="notif_daily_desc">আপনার আজকের আয়-ব্যয় যোগ করতে ভুলবেন না।</string>
+    <string name="notif_daily_title">আজকের হিসাব যোগ করে রাখুন</string>
+    <string name="notif_daily_desc">আজকের আয় ও খরচ অ্যাপে যোগ করে রাখুন, যাতে হিসাব ঠিক থাকে।</string>
 
     <string name="notif_unknown_person">কেউ একজন</string>
     <string name="notif_payment_title">লেনদেন রিমাইন্ডার</string>
@@ -379,4 +379,5 @@
     <string name="notif_payment_lending">আপনার %1$s-এর কাছ থেকে %2$d টাকা পাওয়ার কথা।</string>
     <string name="notif_payment_borrowing">আপনার %1$s-কে %2$d টাকা দেওয়ার কথা।</string>
 
+    <string name="notif_daily_channel_name">প্রতিদিনের হিসাবের রিমাইন্ডার</string>
 </resources>
